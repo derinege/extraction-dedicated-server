@@ -24,7 +24,9 @@ cd Tools\dedicated-server-manager
 npm start
 ```
 
-`game/ExtractionShooterServer.exe` + `_Data` klasörünü repoya koymuyoruz — Unity'den Windows dedicated build alıp `game/` altına kopyala.
+`game/` repoda yok — **Derin `game.zip` atar** (Windows headless server `.exe`, oyun client değil).
+
+📄 [Sen ne yapacaksın](docs/SEN-NE-YAPACAKSIN.md) · [Arkadaş kurulumu](docs/ARKADAS-KURULUM.md)
 
 ## Oyuncular (siz)
 

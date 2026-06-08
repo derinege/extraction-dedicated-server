@@ -1,4 +1,4 @@
-# INSTALL_SCRIPT_VERSION=3
+﻿# INSTALL_SCRIPT_VERSION=3
 # Tek script - Git / GitHub CLI gerekmez.
 # Tekrar calistirinca SADECE eksik parcalari kurar.
 
@@ -146,9 +146,15 @@ if (-not (Test-PanelReady $panel)) {
   }
   $electronExe = Join-Path $panel "node_modules\electron\dist\electron.exe"
   if (-not (Test-Path $electronExe)) {
-    Write-Host "  Electron eksik, indiriliyor (~150 MB)..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force (Join-Path $panel "node_modules\electron") -ErrorAction SilentlyContinue
-    npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit --no-fund
+    Write-Host "  Electron eksik, FIX-ELECTRON ile indiriliyor (~150 MB)..." -ForegroundColor Yellow
+    $fixScript = Join-Path $InstallDir "scripts\fix-electron.ps1"
+    if (Test-Path $fixScript) {
+      & $fixScript -InstallDir $InstallDir
+      if ($LASTEXITCODE -ne 0) { throw "Electron kurulamadi. FIX-ELECTRON.bat calistir." }
+    } else {
+      Remove-Item -Recurse -Force (Join-Path $panel "node_modules\electron") -ErrorAction SilentlyContinue
+      npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit --no-fund --force
+    }
   }
   if (-not (Test-Path $electronExe)) {
     throw "Electron kurulamadi. FIX-ELECTRON.bat calistir."

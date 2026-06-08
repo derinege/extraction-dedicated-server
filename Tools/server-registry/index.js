@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json({ limit: "32kb" }));
 
 const PORT = Number(process.env.REGISTRY_PORT || 8787);
-const TTL_MS = Number(process.env.REGISTRY_TTL_SEC || 45) * 1000;
+const TTL_MS = Number(process.env.REGISTRY_TTL_SEC || 25) * 1000;
 
 /** @type {Map<string, object>} */
 const servers = new Map();
@@ -167,6 +167,13 @@ function normalizeClients(raw) {
       pingMs: Math.max(0, Number(c?.pingMs) || 0),
     }));
 }
+
+app.post("/v1/servers/unregister", (req, res) => {
+  const serverId = String(req.body?.serverId || "").trim();
+  if (!serverId) return res.status(400).json({ error: "serverId required" });
+  servers.delete(serverId);
+  res.json({ ok: true });
+});
 
 app.delete("/v1/servers/:serverId", (req, res) => {
   servers.delete(req.params.serverId);

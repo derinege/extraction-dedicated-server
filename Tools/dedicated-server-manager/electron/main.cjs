@@ -111,6 +111,31 @@ function registryBaseUrl(port) {
   return `http://127.0.0.1:${port}/v1`;
 }
 
+async function unregisterFromRegistry(registryPort, serverId) {
+  if (!serverId) return;
+  try {
+    const url = `${registryBaseUrl(registryPort)}/servers/${encodeURIComponent(serverId)}`;
+    await fetch(url, { method: "DELETE" });
+  } catch {
+    /* registry offline */
+  }
+}
+
+function killGameProcess(proc) {
+  if (!proc || proc.exitCode != null) return;
+  const pid = proc.pid;
+  proc.kill("SIGTERM");
+  if (process.platform === "win32" && pid) {
+    setTimeout(() => {
+      try {
+        spawn("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore", shell: true });
+      } catch {
+        /* already exited */
+      }
+    }, 1500);
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1024,
@@ -247,8 +272,16 @@ function startDedicatedServer(opts) {
 }
 
 function stopDedicatedServer() {
+  const cfg = readConfig();
+  const serverId = activeServerId;
+  const registryPort = cfg.registryPort || 8787;
+
+  if (serverId) {
+    unregisterFromRegistry(registryPort, serverId);
+  }
+
   if (gameServerProcess && gameServerProcess.exitCode == null) {
-    gameServerProcess.kill("SIGTERM");
+    killGameProcess(gameServerProcess);
   }
   gameServerProcess = null;
   activeServerId = null;
@@ -334,10 +367,7 @@ ipcMain.handle("panel:startServer", async (_e, opts) => {
   return startDedicatedServer(cfg);
 });
 
-ipcMain.handle("panel:stopServer", async () => {
-  stopDedicatedServer();
-  return { ok: true };
-});
+ipcMain.handle("panel:stopServer", async () => stopDedicatedServer());
 
 ipcMain.handle("panel:stopAll", async () => {
   stopDedicatedServer();

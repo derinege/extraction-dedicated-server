@@ -129,12 +129,12 @@ $("btnStart").addEventListener("click", async () => {
 
 $("btnStop").addEventListener("click", async () => {
   log("Durduruluyor...");
-  await window.serverPanel.stopAll();
+  await window.serverPanel.stopServer();
   activeServerId = null;
   $("btnStart").disabled = false;
   $("btnStop").disabled = true;
   await refreshMonitor();
-  log("Durduruldu.");
+  log("Durduruldu (registry listesinden silindi).");
 });
 
 loadPanel()

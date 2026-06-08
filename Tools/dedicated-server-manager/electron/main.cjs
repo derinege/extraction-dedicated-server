@@ -111,6 +111,22 @@ function registryBaseUrl(port) {
   return `http://127.0.0.1:${port}/v1`;
 }
 
+async function isRegistryHealthy(port) {
+  try {
+    const res = await fetch(`${registryBaseUrl(port)}/health`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+async function registryIsRunning(port) {
+  if (registryProcess != null && registryProcess.exitCode == null) return true;
+  return isRegistryHealthy(port);
+}
+
 async function unregisterFromRegistry(registryPort, serverId) {
   if (!serverId) return;
   try {
@@ -155,8 +171,11 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "../ui/index.html"));
 }
 
-function startRegistry(port) {
+async function startRegistry(port) {
   if (registryProcess && registryProcess.exitCode == null) {
+    return { ok: true, alreadyRunning: true };
+  }
+  if (await isRegistryHealthy(port)) {
     return { ok: true, alreadyRunning: true };
   }
 
@@ -167,25 +186,23 @@ function startRegistry(port) {
   }
 
   try {
-    const env = { ...process.env, REGISTRY_PORT: String(port) };
-    if (app.isPackaged) {
-      registryProcess = spawn(process.execPath, [entry], {
-        cwd: dir,
-        env: { ...env, ELECTRON_RUN_AS_NODE: "1" },
-        stdio: "ignore",
-      });
-    } else {
-      registryProcess = spawn(process.platform === "win32" ? "node.exe" : "node", [entry], {
-        cwd: dir,
-        env,
-        stdio: "ignore",
-        shell: process.platform === "win32",
-      });
-    }
+    const env = { ...process.env, REGISTRY_PORT: String(port), ELECTRON_RUN_AS_NODE: "1" };
+    registryProcess = spawn(process.execPath, [entry], {
+      cwd: dir,
+      env,
+      stdio: "ignore",
+    });
     registryProcess.on("exit", () => {
       registryProcess = null;
     });
-    return { ok: true };
+
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 300));
+      if (await isRegistryHealthy(port)) return { ok: true };
+      if (registryProcess.exitCode != null) break;
+    }
+
+    return { ok: false, error: `Registry baslatilamadi (port ${port})` };
   } catch (err) {
     return { ok: false, error: String(err.message || err) };
   }
@@ -312,7 +329,7 @@ ipcMain.handle("panel:getInfo", async () => {
     lanAddresses: lan,
     config: cfg,
     status: {
-      registryRunning: registryProcess != null && registryProcess.exitCode == null,
+      registryRunning: await registryIsRunning(cfg.registryPort || 8787),
       serverRunning: gameServerProcess != null && gameServerProcess.exitCode == null,
     },
   };
@@ -324,7 +341,7 @@ ipcMain.handle("panel:getMonitorStatus", async () => {
     config: cfg,
     lanAddresses: listLanAddresses(),
     status: {
-      registryRunning: registryProcess != null && registryProcess.exitCode == null,
+      registryRunning: await registryIsRunning(cfg.registryPort || 8787),
       serverRunning: gameServerProcess != null && gameServerProcess.exitCode == null,
     },
   };
@@ -351,7 +368,7 @@ ipcMain.handle("panel:saveConfig", async (_e, data) => {
 
 ipcMain.handle("panel:startRegistry", async (_e, { port } = {}) => {
   const cfg = readConfig();
-  return startRegistry(port || cfg.registryPort || 8787);
+  return await startRegistry(port || cfg.registryPort || 8787);
 });
 
 ipcMain.handle("panel:stopRegistry", async () => stopRegistry());
@@ -360,14 +377,17 @@ ipcMain.handle("panel:startServer", async (_e, opts) => {
   const cfg = { ...readConfig(), ...opts };
   writeConfig(cfg);
 
-  const reg = startRegistry(cfg.registryPort);
+  const reg = await startRegistry(cfg.registryPort);
   if (!reg.ok) return reg;
 
   await new Promise((r) => setTimeout(r, 600));
   return startDedicatedServer(cfg);
 });
 
-ipcMain.handle("panel:stopServer", async () => stopDedicatedServer());
+ipcMain.handle("panel:stopServer", async () => {
+  stopDedicatedServer();
+  return { ok: true };
+});
 
 ipcMain.handle("panel:stopAll", async () => {
   stopDedicatedServer();

@@ -30,12 +30,7 @@ function Ensure-Node {
     Write-Log "HATA: Node.js yok. https://nodejs.org LTS kur, PC restart." "Red"
     exit 1
   }
-  $nodeVer = (node -v) -replace "^v", ""
-  $major = [int]($nodeVer.Split(".")[0])
-  Write-Log "Node: v$nodeVer  npm: $(npm -v)" "DarkGray"
-  if ($major -ge 24) {
-    Write-Log "UYARI: Node v$nodeVer desteklenmeyebilir. nodejs.org -> LTS v22 kur, PC restart." "Yellow"
-  }
+  Write-Log "Node: $(node -v)  npm: $(npm -v)" "DarkGray"
 }
 
 function Test-ElectronInstalled {
@@ -229,8 +224,7 @@ if ($ok -and (Test-ElectronHealthy)) {
 
 Write-Log ""
 Write-Log "HATA: Electron hala kurulamadi." "Red"
-Write-Log "  1) Node.js LTS v22 kur (v24 kaldir): https://nodejs.org" "Yellow"
-Write-Log "  2) TEMIZLE-ELECTRON.bat -> Yonetici olarak calistir" "Yellow"
-Write-Log "  3) Antivirus gecici kapat" "Yellow"
-Write-Log "  4) electron-install.log dosyasini Derin'e at" "Yellow"
+Write-Log "  1) TEMIZLE-ELECTRON.bat -> sag tik -> Yonetici olarak calistir" "Yellow"
+Write-Log "  2) Antivirus gecici kapat, tekrar dene" "Yellow"
+Write-Log "  3) electron-install.log dosyasini Derin'e at" "Yellow"
 exit 1

@@ -2,7 +2,6 @@ const $ = (id) => document.getElementById(id);
 
 let pollTimer = null;
 let activeServerId = null;
-let lastRemote = null;
 
 function log(msg) {
   const el = $("log");
@@ -26,20 +25,19 @@ function formatUptime(ms) {
   return `${sec}s`;
 }
 
-function updateClientUrls(cfg, remote, lan) {
-  lastRemote = remote;
+function updateClientUrls(cfg, remote) {
   const registryUrl = remote?.registryUrl || `http://127.0.0.1:${cfg.registryPort}/v1`;
   const gameEp = remote?.gameEndpoint || `127.0.0.1:${cfg.port}`;
   $("clientRegistryUrl").textContent = registryUrl;
   $("clientGameEndpoint").textContent = gameEp;
-  const lanIp = lan?.[0] || "127.0.0.1";
-  $("lanRegistryUrl").textContent = `http://${lanIp}:${cfg.registryPort}/v1 (sadece ayni WiFi)`;
 
-  const warn = $("privateIpWarn");
-  if (remote?.isPrivateGameAddress && !remote?.usingTunnel) {
-    warn.hidden = false;
+  const ts = remote?.tailscale;
+  if (ts?.connected && ts?.ip) {
+    setBadge($("tailscaleStatus"), true, ts.ip, "OFFLINE");
+    $("tailscaleWarn").hidden = true;
   } else {
-    warn.hidden = true;
+    setBadge($("tailscaleStatus"), false, ts?.installed ? "GIRIS BEKLIYOR" : "KURULU DEGIL", "OFFLINE");
+    $("tailscaleWarn").hidden = false;
   }
 }
 
@@ -56,12 +54,6 @@ function renderPlayers(clients) {
     tr.innerHTML = `<td>${c.id ?? "—"}</td><td>${c.name || "—"}</td><td>${ping}</td>`;
     body.appendChild(tr);
   }
-}
-
-async function saveFormConfig() {
-  const data = readForm();
-  await window.serverPanel.saveConfig(data);
-  return data;
 }
 
 async function refreshMonitor() {
@@ -88,7 +80,7 @@ async function refreshMonitor() {
 
   $("btnStop").disabled = !(info.status.registryRunning || info.status.serverRunning);
   $("btnStart").disabled = info.status.serverRunning;
-  updateClientUrls(cfg, info.remote, info.lanAddresses);
+  updateClientUrls(cfg, info.remote);
 }
 
 async function loadPanel() {
@@ -97,18 +89,16 @@ async function loadPanel() {
 
   $("port").value = cfg.port;
   $("registryPort").value = cfg.registryPort;
-  $("publicAddress").value = cfg.publicAddress || "";
-  $("tunnelRegistryUrl").value = cfg.tunnelRegistryUrl || "";
   $("binaryPath").textContent = info.gameBinary || "BINARY NOT FOUND";
   $("binaryPath").title = info.gameBinary || "";
 
-  updateClientUrls(cfg, info.remote, info.lanAddresses);
+  updateClientUrls(cfg, info.remote);
 
   if (!info.gameBinary) {
     log("UYARI: game/ klasorunde server binary yok.");
   }
-  if (info.remote?.isPrivateGameAddress && !info.remote?.usingTunnel) {
-    log("UYARI: Public IP yok — IP BUL veya Tailscale IP yaz. Port forward sart.");
+  if (!info.remote?.tailscale?.connected) {
+    log("Tailscale: giris yap (1 kere). Sonra START.");
   }
 
   await refreshMonitor();
@@ -118,8 +108,6 @@ function readForm() {
   return {
     port: Number($("port").value) || 7777,
     registryPort: Number($("registryPort").value) || 8787,
-    publicAddress: $("publicAddress").value.trim(),
-    tunnelRegistryUrl: $("tunnelRegistryUrl").value.trim(),
   };
 }
 
@@ -128,34 +116,20 @@ function startPolling() {
   pollTimer = setInterval(() => refreshMonitor().catch(() => {}), 3000);
 }
 
-async function onConfigFieldChange() {
-  await saveFormConfig();
+$("port").addEventListener("change", async () => {
+  await window.serverPanel.saveConfig(readForm());
   await refreshMonitor();
-}
-
-$("port").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
-$("registryPort").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
-$("publicAddress").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
-$("tunnelRegistryUrl").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
-
-$("btnFetchIp").addEventListener("click", async () => {
-  log("Public IP araniyor...");
-  const result = await window.serverPanel.fetchPublicIp();
-  if (!result.ok) {
-    log(`HATA: ${result.error}`);
-    return;
-  }
-  $("publicAddress").value = result.ip;
-  updateClientUrls(readForm(), result.remote, []);
-  log(`Public IP: ${result.ip}`);
-  log(`Registry URL: ${result.remote.registryUrl}`);
+});
+$("registryPort").addEventListener("change", async () => {
+  await window.serverPanel.saveConfig(readForm());
+  await refreshMonitor();
 });
 
 $("btnCopyRegistry").addEventListener("click", async () => {
   const url = $("clientRegistryUrl").textContent;
   try {
     await navigator.clipboard.writeText(url);
-    log("Registry URL kopyalandi — Derin'e yapistir.");
+    log("URL kopyalandi — Derin launcher Settings'e yapistir.");
   } catch {
     log(`Kopyala: ${url}`);
   }
@@ -163,9 +137,9 @@ $("btnCopyRegistry").addEventListener("click", async () => {
 
 $("btnStart").addEventListener("click", async () => {
   const cfg = readForm();
-  await saveFormConfig();
+  await window.serverPanel.saveConfig(cfg);
   $("btnStart").disabled = true;
-  log("Dedicated server baslatiliyor (internet modu)...");
+  log("Dedicated server baslatiliyor...");
 
   const result = await window.serverPanel.startServer(cfg);
   if (!result.ok) {
@@ -175,12 +149,8 @@ $("btnStart").addEventListener("click", async () => {
   }
 
   activeServerId = result.serverId;
-  log(`OK game: ${result.gameEndpoint}`);
-  log(`Registry (Derin Settings): ${result.registryUrl}`);
-  if (result.isPrivateGameAddress && !result.usingTunnel) {
-    log("UYARI: 192.168.x.x gorunuyor — uzaktan JOIN calismaz!");
-  }
-  log("Port forward: 7777 TCP+UDP (+ 8787 TCP veya tunel URL)");
+  log(`OK: ${result.gameEndpoint}`);
+  log(`Derin'e at: ${result.registryUrl}`);
 
   $("btnStop").disabled = false;
   startPolling();
@@ -194,7 +164,7 @@ $("btnStop").addEventListener("click", async () => {
   $("btnStart").disabled = false;
   $("btnStop").disabled = true;
   await refreshMonitor();
-  log("Durduruldu (registry listesinden silindi).");
+  log("Durduruldu.");
 });
 
 loadPanel()

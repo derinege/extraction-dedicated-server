@@ -1,38 +1,30 @@
-# Arkadas — dedicated server (UZAK OYUN)
+# Arkadas — ayni akis (KUR.bat + BASLAT-SERVER.bat)
 
-Farkli evlerde oynuyorsunuz — **192.168.x.x paylasmayin**.
+## 1) Node.js + KUR.bat
 
-## 1) Node.js + KUR
+1. https://nodejs.org → LTS → kur → restart
+2. Zip indir veya mevcut klasor
+3. **`KUR.bat`** — Tailscale de otomatik kurulur (ekstra dosya yok)
 
-1. https://nodejs.org → LTS kur → PC restart
-2. Zip: https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip
-3. **`KUR.bat`** cift tik
+## 2) Tailscale giris (1 kere)
 
-## 2) Router (onemli)
+KUR bitince Tailscale acilir → **Google veya Microsoft ile giris yap**.
 
-Modem panelinden bu PC'ye yonlendir:
+Derin'i Tailscale'e davet et:
+- https://login.tailscale.com/admin/settings/users → Invite
+- veya Derin seni davet etsin — ayni agda olun
 
-- **7777** TCP + UDP (oyun — zorunlu)
-- **8787** TCP (registry — tunel kullanmazsan)
-
-## 3) Panel
+## 3) Server
 
 1. **`BASLAT-SERVER.bat`**
-2. **IP BUL** tikla (public IP gelsin)
+2. Tailscale satiri **100.x.x.x ONLINE** olsun
 3. **START DEDICATED SERVER**
-4. **LAUNCHER REGISTRY URL** → KOPYALA → Derin'e WhatsApp at
+4. **CLIENT REGISTRY URL** → **KOPYALA** → Derin'e at
 
-Ornek:
-```
-http://85.123.45.67:8787/v1
-```
+## 4) Derin (Mac)
 
-8787 acamiyorsan: **`UZAK-TUNEL.bat`** → cikan https URL + `/v1` → panele yapistir.
+1. https://tailscale.com/download/mac → kur, giris (arkadasla ayni tailnet)
+2. Launcher Settings → URL yapistir
+3. FIND RAID → JOIN
 
-## 4) Firewall
-
-Windows: 7777 ve 8787 gelen baglantiya izin ver.
-
----
-
-Detay: [UZAK-OYUN.md](UZAK-OYUN.md)
+Hepsi bu. Port forward yok.

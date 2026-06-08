@@ -1,25 +1,17 @@
 # Extraction Shooter — Dedicated Server Host
 
-Arkadaşın kasalı PC: panel + headless server (oyun client değil).
+## Arkadas (Windows)
 
-## Arkadaş (Windows) — Git yok, GitHub CLI yok
+1. Node.js LTS → **KUR.bat** (Tailscale dahil)
+2. Tailscale giris (1 kere)
+3. **BASLAT-SERVER.bat** → START → URL kopyala
 
-1. **Node.js LTS** → https://nodejs.org (kur, restart)
-2. Zip indir → https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip
-3. Aç → **`KUR.bat`** çift tık
-4. **`BASLAT-SERVER.bat`** çift tık → START DEDICATED SERVER
+📄 [docs/ARKADAS-KURULUM.md](docs/ARKADAS-KURULUM.md)
 
-📄 Detay: [docs/ARKADAS-KURULUM.md](docs/ARKADAS-KURULUM.md)
+## Derin (Mac)
 
-## Oyuncular (Derin) — farkli ev / internet
+1. [Tailscale Mac](https://tailscale.com/download/mac) kur, arkadasla ayni tailnet
+2. Launcher → **SETTINGS → SERVER REGISTRY URL** = arkadasin kopyaladigi URL
+3. **FIND RAID → JOIN**
 
-Launcher → **SETTINGS → NETWORK → SERVER REGISTRY URL**  
-Arkadasin panelden kopyaladigi **public** URL (192.168 degil):
-
-```
-http://85.xxx.xxx.xxx:8787/v1
-```
-
-veya cloudflare tuneli: `https://xxx.trycloudflare.com/v1`
-
-📄 Detay: [docs/UZAK-OYUN.md](docs/UZAK-OYUN.md)
+Port forward gerekmez.

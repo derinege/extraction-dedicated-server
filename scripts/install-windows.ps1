@@ -1,4 +1,4 @@
-﻿# INSTALL_SCRIPT_VERSION=4
+# INSTALL_SCRIPT_VERSION=4
 # Tek script - Git / GitHub CLI gerekmez.
 # Tekrar calistirinca SADECE eksik parcalari kurar.
 
@@ -111,6 +111,46 @@ function Invoke-FixElectron($InstallDir, [switch]$Force) {
   return ($LASTEXITCODE -eq 0)
 }
 
+function Test-TailscaleInstalled {
+  $exe = Join-Path ${env:ProgramFiles} "Tailscale\tailscale.exe"
+  return (Test-Path $exe)
+}
+
+function Install-Tailscale {
+  if (Test-TailscaleInstalled) {
+    Write-Skip "Tailscale zaten kurulu"
+    return
+  }
+  Write-Step "Tailscale (farkli evden baglanti - otomatik)"
+  $ok = $false
+  $winget = Get-Command winget -ErrorAction SilentlyContinue
+  if ($winget) {
+    try {
+      Write-Host "  winget ile kuruluyor..." -ForegroundColor DarkGray
+      & winget install -e --id Tailscale.Tailscale --accept-package-agreements --accept-source-agreements --silent
+      if ($LASTEXITCODE -eq 0) { $ok = $true }
+    } catch {
+      Write-Host "  winget basarisiz, MSI deneniyor..." -ForegroundColor DarkGray
+    }
+  }
+  if (-not $ok) {
+    $msi = Join-Path $env:TEMP "tailscale-setup.msi"
+    Download-File "https://pkgs.tailscale.com/stable/tailscale-setup-full-latest-amd64.msi" $msi
+    Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /quiet" -Wait
+    $ok = Test-TailscaleInstalled
+  }
+  if ($ok) {
+    Write-Host "  OK" -ForegroundColor Green
+    $tsExe = Join-Path ${env:ProgramFiles} "Tailscale\tailscale.exe"
+    if (Test-Path $tsExe) {
+      Start-Process $tsExe -ErrorAction SilentlyContinue
+      Write-Host "  Tailscale acildi - 1 kere Google/Microsoft ile giris yap" -ForegroundColor Yellow
+    }
+  } else {
+    Write-Host "  UYARI: Tailscale kurulamadi. https://tailscale.com/download/windows" -ForegroundColor Yellow
+  }
+}
+
 function Save-InstallState($InstallDir, $panel, $registry, $gameExe) {
   $state = @{
     installedAt = (Get-Date).ToString("o")
@@ -129,6 +169,7 @@ if ($Force) { Write-Host "Mod: TUMUNU YENIDEN KUR (-Force)" -ForegroundColor Yel
 
 Ensure-Node
 Ensure-FixElectronScript $InstallDir
+Install-Tailscale
 
 $panel = Join-Path $InstallDir "Tools\dedicated-server-manager"
 $registry = Join-Path $InstallDir "Tools\server-registry"
@@ -242,7 +283,8 @@ Write-Host "  HAZIR" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Calistir: $startBat" -ForegroundColor Yellow
-Write-Host "Panelde START DEDICATED SERVER" -ForegroundColor Yellow
+Write-Host "Panelde START -> CLIENT REGISTRY URL kopyala -> Derin'e at" -ForegroundColor Yellow
+Write-Host "Tailscale: 1 kere giris yap, Derin'i tailscale'e davet et (veya tersi)" -ForegroundColor Yellow
 Write-Host ""
 
 Set-Location $InstallDir

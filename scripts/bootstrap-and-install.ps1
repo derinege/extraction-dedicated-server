@@ -1,4 +1,4 @@
-﻿﻿# KUR.bat once bunu calistirir - GitHub'dan guncel scriptleri indirir.
+# KUR.bat once bunu calistirir - GitHub'dan guncel scriptleri indirir.
 
 param(
   [string]$InstallDir = "",

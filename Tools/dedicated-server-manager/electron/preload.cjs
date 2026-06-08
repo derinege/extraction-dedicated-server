@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld("serverPanel", {
   startServer: (opts) => ipcRenderer.invoke("panel:startServer", opts),
   stopServer: () => ipcRenderer.invoke("panel:stopServer"),
   stopAll: () => ipcRenderer.invoke("panel:stopAll"),
+  fetchPublicIp: () => ipcRenderer.invoke("panel:fetchPublicIp"),
 });

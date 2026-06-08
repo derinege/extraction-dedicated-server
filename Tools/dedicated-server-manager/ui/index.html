@@ -11,28 +11,40 @@
       <header>
         <p class="eyebrow">EXTRACTION SHOOTER</p>
         <h1>DEDICATED SERVER PANEL</h1>
-        <p class="sub">Sadece headless sunucu — harita / raid host oyuncunun launcher'inda secilir</p>
+        <p class="sub">Farkli evdeki oyuncular icin INTERNET modu — asagidaki UZAK URL'leri paylas</p>
       </header>
 
       <section class="grid">
-        <div class="card">
-          <h2>NETWORK</h2>
-          <label>GAME PORT<input id="port" type="number" min="1" max="65535" /></label>
-          <label>REGISTRY PORT<input id="registryPort" type="number" min="1" max="65535" /></label>
-          <label>PUBLIC / LAN IP
-            <input id="publicAddress" type="text" placeholder="Otomatik LAN IP" />
+        <div class="card card-internet">
+          <h2>INTERNET (UZAK OYUNCU)</h2>
+          <p class="warn" id="privateIpWarn" hidden>
+            UYARI: Public IP yok veya 192.168.x.x — uzaktan baglanamaz. Port forward veya Tailscale kullan.
+          </p>
+          <label>PUBLIC IP (oyun baglantisi)
+            <div class="row-input">
+              <input id="publicAddress" type="text" placeholder="Otomatik bulunur — veya Tailscale IP" />
+              <button type="button" id="btnFetchIp" class="small">IP BUL</button>
+            </div>
           </label>
-          <p class="hint">Router: GAME PORT (7777) + REGISTRY PORT (8787) forward</p>
-          <div class="info-box compact">
-            <p class="label">CLIENT REGISTRY URL</p>
+          <label>TUNNEL REGISTRY URL (opsiyonel)
+            <input id="tunnelRegistryUrl" type="text" placeholder="https://xxx.trycloudflare.com/v1" />
+          </label>
+          <p class="hint">8787 port forward yoksa: UZAK-TUNEL.bat calistir, cikan URL'yi yukari yapistir.</p>
+          <p class="hint">Router port forward: <strong>7777</strong> TCP+UDP ve (tunel yoksa) <strong>8787</strong> TCP → bu PC</p>
+          <div class="info-box highlight">
+            <p class="label">LAUNCHER REGISTRY URL (Derin Settings)</p>
             <code id="clientRegistryUrl">—</code>
-            <p class="label">GAME ENDPOINT</p>
+            <button type="button" id="btnCopyRegistry" class="small">KOPYALA</button>
+            <p class="label">GAME ENDPOINT (JOIN)</p>
             <code id="clientGameEndpoint">—</code>
           </div>
+          <p class="hint dim">LAN (aynı WiFi): <span id="lanRegistryUrl" class="mono">—</span></p>
         </div>
 
         <div class="card">
           <h2>SERVER HEALTH</h2>
+          <label>GAME PORT<input id="port" type="number" min="1" max="65535" /></label>
+          <label>REGISTRY PORT<input id="registryPort" type="number" min="1" max="65535" /></label>
           <div class="status-row">
             <span>Registry</span>
             <span id="registryStatus" class="badge off">OFFLINE</span>

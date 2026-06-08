@@ -31,7 +31,10 @@ function defaultConfig() {
   return {
     port: 7777,
     registryPort: 8787,
+    /** Public IP or Tailscale IP — clients connect here (NOT 192.168.x.x for remote friends). */
     publicAddress: "",
+    /** Optional: https://xxx.trycloudflare.com/v1 — registry tunnel without port 8787 forward. */
+    tunnelRegistryUrl: "",
     maxPlayers: 8,
   };
 }
@@ -127,6 +130,63 @@ async function registryIsRunning(port) {
   return isRegistryHealthy(port);
 }
 
+function isTailscaleIp(ip) {
+  if (!ip) return false;
+  const p = String(ip).trim().split(".").map(Number);
+  if (p.length !== 4 || p[0] !== 100) return false;
+  return p[1] >= 64 && p[1] <= 127;
+}
+
+function listTailscaleAddresses() {
+  const ips = [];
+  for (const nets of Object.values(os.networkInterfaces())) {
+    for (const net of nets || []) {
+      if (net.family !== "IPv4" || net.internal) continue;
+      if (isTailscaleIp(net.address)) ips.push(net.address);
+    }
+  }
+  return ips;
+}
+
+function getTailscaleInfo() {
+  const ips = listTailscaleAddresses();
+  const winExe = "C:\\Program Files\\Tailscale\\tailscale.exe";
+  const installed =
+    process.platform === "win32"
+      ? fs.existsSync(winExe)
+      : fs.existsSync("/Applications/Tailscale.app") || ips.length > 0;
+  return {
+    installed,
+    connected: ips.length > 0,
+    ip: ips[0] || null,
+    ips,
+  };
+}
+
+/** Tailscale IP first — remote friends, no port forward. */
+async function resolveRemoteAddresses(cfg) {
+  const lan = listLanAddresses()[0] || "127.0.0.1";
+  const registryPort = cfg.registryPort || 8787;
+  const gamePort = cfg.port || 7777;
+  const tailscale = getTailscaleInfo();
+
+  let gameAddress = String(cfg.publicAddress || "").trim();
+  if (!gameAddress) {
+    gameAddress = tailscale.ip || lan;
+  }
+
+  const registryUrl = `http://${gameAddress}:${registryPort}/v1`;
+
+  return {
+    lanAddress: lan,
+    gameAddress,
+    gameEndpoint: `${gameAddress}:${gamePort}`,
+    registryUrl,
+    tailscale,
+    isRemoteReady: Boolean(tailscale.connected && tailscale.ip),
+  };
+}
+
 async function unregisterFromRegistry(registryPort, serverId) {
   if (!serverId) return;
   try {
@@ -216,7 +276,7 @@ function stopRegistry() {
   return { ok: true };
 }
 
-function startDedicatedServer(opts) {
+async function startDedicatedServer(opts) {
   if (gameServerProcess && gameServerProcess.exitCode == null) {
     return { ok: false, error: "Dedicated server zaten calisiyor." };
   }
@@ -232,8 +292,8 @@ function startDedicatedServer(opts) {
 
   const port = String(opts.port || 7777);
   const registryPort = String(opts.registryPort || 8787);
-  const publicAddress =
-    String(opts.publicAddress || "").trim() || listLanAddresses()[0] || "127.0.0.1";
+  const remote = await resolveRemoteAddresses(opts);
+  const publicAddress = remote.gameAddress;
   const serverId = `dedicated-${Date.now()}`;
 
   try {
@@ -280,8 +340,11 @@ function startDedicatedServer(opts) {
       port,
       scene: DEDICATED_LOBBY_SCENE,
       publicAddress,
-      registryUrl: `http://${publicAddress}:${registryPort}/v1`,
+      registryUrl: remote.registryUrl,
       gameAddress: publicAddress,
+      gameEndpoint: remote.gameEndpoint,
+      tailscale: remote.tailscale,
+      isRemoteReady: remote.isRemoteReady,
     };
   } catch (err) {
     return { ok: false, error: String(err.message || err) };
@@ -321,6 +384,7 @@ async function fetchRegistryServer(registryPort, serverId) {
 ipcMain.handle("panel:getInfo", async () => {
   const cfg = readConfig();
   const lan = listLanAddresses();
+  const remote = await resolveRemoteAddresses(cfg);
   return {
     platform: process.platform,
     repoRoot: repoRoot(),
@@ -328,11 +392,23 @@ ipcMain.handle("panel:getInfo", async () => {
     registryDir: registryDir(),
     lanAddresses: lan,
     config: cfg,
+    remote,
     status: {
       registryRunning: await registryIsRunning(cfg.registryPort || 8787),
       serverRunning: gameServerProcess != null && gameServerProcess.exitCode == null,
     },
   };
+});
+
+ipcMain.handle("panel:fetchPublicIp", async () => {
+  const ts = getTailscaleInfo();
+  if (ts.ip) {
+    const cfg = readConfig();
+    writeConfig({ ...cfg, publicAddress: ts.ip });
+    const remote = await resolveRemoteAddresses({ ...cfg, publicAddress: ts.ip });
+    return { ok: true, ip: ts.ip, remote, tailscale: ts };
+  }
+  return { ok: false, error: "Tailscale bagli degil. Tailscale ac, giris yap." };
 });
 
 ipcMain.handle("panel:getMonitorStatus", async () => {

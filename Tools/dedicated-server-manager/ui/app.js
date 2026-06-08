@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 let pollTimer = null;
 let activeServerId = null;
+let lastRemote = null;
 
 function log(msg) {
   const el = $("log");
@@ -25,10 +26,21 @@ function formatUptime(ms) {
   return `${sec}s`;
 }
 
-function updateClientUrls(cfg, lan) {
-  const ip = cfg.publicAddress?.trim() || lan[0] || "127.0.0.1";
-  $("clientRegistryUrl").textContent = `http://${ip}:${cfg.registryPort}/v1`;
-  $("clientGameEndpoint").textContent = `${ip}:${cfg.port}`;
+function updateClientUrls(cfg, remote, lan) {
+  lastRemote = remote;
+  const registryUrl = remote?.registryUrl || `http://127.0.0.1:${cfg.registryPort}/v1`;
+  const gameEp = remote?.gameEndpoint || `127.0.0.1:${cfg.port}`;
+  $("clientRegistryUrl").textContent = registryUrl;
+  $("clientGameEndpoint").textContent = gameEp;
+  const lanIp = lan?.[0] || "127.0.0.1";
+  $("lanRegistryUrl").textContent = `http://${lanIp}:${cfg.registryPort}/v1 (sadece ayni WiFi)`;
+
+  const warn = $("privateIpWarn");
+  if (remote?.isPrivateGameAddress && !remote?.usingTunnel) {
+    warn.hidden = false;
+  } else {
+    warn.hidden = true;
+  }
 }
 
 function renderPlayers(clients) {
@@ -46,9 +58,15 @@ function renderPlayers(clients) {
   }
 }
 
+async function saveFormConfig() {
+  const data = readForm();
+  await window.serverPanel.saveConfig(data);
+  return data;
+}
+
 async function refreshMonitor() {
   const mon = await window.serverPanel.getMonitorStatus();
-  const info = mon.info;
+  const info = await window.serverPanel.getInfo();
   const cfg = info.config;
 
   setBadge($("registryStatus"), info.status.registryRunning, "ONLINE", "OFFLINE");
@@ -70,7 +88,7 @@ async function refreshMonitor() {
 
   $("btnStop").disabled = !(info.status.registryRunning || info.status.serverRunning);
   $("btnStart").disabled = info.status.serverRunning;
-  updateClientUrls(cfg, info.lanAddresses);
+  updateClientUrls(cfg, info.remote, info.lanAddresses);
 }
 
 async function loadPanel() {
@@ -80,13 +98,17 @@ async function loadPanel() {
   $("port").value = cfg.port;
   $("registryPort").value = cfg.registryPort;
   $("publicAddress").value = cfg.publicAddress || "";
+  $("tunnelRegistryUrl").value = cfg.tunnelRegistryUrl || "";
   $("binaryPath").textContent = info.gameBinary || "BINARY NOT FOUND";
   $("binaryPath").title = info.gameBinary || "";
 
-  updateClientUrls(cfg, info.lanAddresses);
+  updateClientUrls(cfg, info.remote, info.lanAddresses);
 
   if (!info.gameBinary) {
     log("UYARI: game/ klasorunde server binary yok.");
+  }
+  if (info.remote?.isPrivateGameAddress && !info.remote?.usingTunnel) {
+    log("UYARI: Public IP yok — IP BUL veya Tailscale IP yaz. Port forward sart.");
   }
 
   await refreshMonitor();
@@ -97,6 +119,7 @@ function readForm() {
     port: Number($("port").value) || 7777,
     registryPort: Number($("registryPort").value) || 8787,
     publicAddress: $("publicAddress").value.trim(),
+    tunnelRegistryUrl: $("tunnelRegistryUrl").value.trim(),
   };
 }
 
@@ -105,10 +128,44 @@ function startPolling() {
   pollTimer = setInterval(() => refreshMonitor().catch(() => {}), 3000);
 }
 
+async function onConfigFieldChange() {
+  await saveFormConfig();
+  await refreshMonitor();
+}
+
+$("port").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
+$("registryPort").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
+$("publicAddress").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
+$("tunnelRegistryUrl").addEventListener("change", () => onConfigFieldChange().catch((e) => log(String(e))));
+
+$("btnFetchIp").addEventListener("click", async () => {
+  log("Public IP araniyor...");
+  const result = await window.serverPanel.fetchPublicIp();
+  if (!result.ok) {
+    log(`HATA: ${result.error}`);
+    return;
+  }
+  $("publicAddress").value = result.ip;
+  updateClientUrls(readForm(), result.remote, []);
+  log(`Public IP: ${result.ip}`);
+  log(`Registry URL: ${result.remote.registryUrl}`);
+});
+
+$("btnCopyRegistry").addEventListener("click", async () => {
+  const url = $("clientRegistryUrl").textContent;
+  try {
+    await navigator.clipboard.writeText(url);
+    log("Registry URL kopyalandi — Derin'e yapistir.");
+  } catch {
+    log(`Kopyala: ${url}`);
+  }
+});
+
 $("btnStart").addEventListener("click", async () => {
   const cfg = readForm();
+  await saveFormConfig();
   $("btnStart").disabled = true;
-  log("Dedicated server baslatiliyor (headless)...");
+  log("Dedicated server baslatiliyor (internet modu)...");
 
   const result = await window.serverPanel.startServer(cfg);
   if (!result.ok) {
@@ -118,9 +175,12 @@ $("btnStart").addEventListener("click", async () => {
   }
 
   activeServerId = result.serverId;
-  log(`OK: ${result.gameAddress}:${result.port}`);
-  log(`Registry URL (launcher Settings): ${result.registryUrl}`);
-  log("Harita secimi HOST oyuncunun launcher HOST & PLAY ekraninda.");
+  log(`OK game: ${result.gameEndpoint}`);
+  log(`Registry (Derin Settings): ${result.registryUrl}`);
+  if (result.isPrivateGameAddress && !result.usingTunnel) {
+    log("UYARI: 192.168.x.x gorunuyor — uzaktan JOIN calismaz!");
+  }
+  log("Port forward: 7777 TCP+UDP (+ 8787 TCP veya tunel URL)");
 
   $("btnStop").disabled = false;
   startPolling();

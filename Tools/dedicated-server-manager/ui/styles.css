@@ -241,3 +241,43 @@ button:disabled {
   white-space: nowrap;
   display: inline-block;
 }
+
+.card-internet .highlight {
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.warn {
+  color: #e88888;
+  font-size: 12px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: rgba(232, 136, 136, 0.08);
+  border: 1px solid rgba(232, 136, 136, 0.3);
+}
+
+.row-input {
+  display: flex;
+  gap: 8px;
+}
+
+.row-input input {
+  flex: 1;
+}
+
+button.small {
+  height: 40px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 10px;
+  background: var(--elevated);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.hint.dim {
+  font-size: 10px;
+  margin-top: 10px;
+}

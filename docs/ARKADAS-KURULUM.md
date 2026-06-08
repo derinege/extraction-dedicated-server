@@ -1,56 +1,38 @@
-# Arkadaş — teknik bilgi gerekmez
+# Arkadas — dedicated server (UZAK OYUN)
 
-## 1) Node.js kur (1 kere)
+Farkli evlerde oynuyorsunuz — **192.168.x.x paylasmayin**.
 
-1. Tarayıcıda aç: **https://nodejs.org**
-2. **LTS** yeşil buton → indir → kur → Next Next Finish
-3. PC’yi yeniden başlat (veya PowerShell kapat-aç)
+## 1) Node.js + KUR
 
-> GitHub CLI **gerekmez**. Git **gerekmez**.
+1. https://nodejs.org → LTS kur → PC restart
+2. Zip: https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip
+3. **`KUR.bat`** cift tik
 
----
+## 2) Router (onemli)
 
-## 2) Dosyaları indir
+Modem panelinden bu PC'ye yonlendir:
 
-Tarayıcıdan bu zip’i indir (GitHub hesabı gerekmez):
+- **7777** TCP + UDP (oyun — zorunlu)
+- **8787** TCP (registry — tunel kullanmazsan)
 
-**https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip**
+## 3) Panel
 
-Zip’i aç → klasörü masaüstüne koy, adı fark etmez.
+1. **`BASLAT-SERVER.bat`**
+2. **IP BUL** tikla (public IP gelsin)
+3. **START DEDICATED SERVER**
+4. **LAUNCHER REGISTRY URL** → KOPYALA → Derin'e WhatsApp at
 
----
-
-## 3) Kur
-
-Klasörün içinde **`KUR.bat`** dosyasına **çift tık**.
-
-- İlk sefer ~335 MB server dosyası indirir (normal)
-- Bitti deyince kapansın
-
----
-
-## 4) Server başlat
-
-Aynı klasörde **`BASLAT-SERVER.bat`** çift tık.
-
-Panel açılınca → **START DEDICATED SERVER**
-
-Derin’e panelde yazan adresi at:
+Ornek:
 ```
-http://SENIN_IP:8787/v1
+http://85.123.45.67:8787/v1
 ```
-(IP panelde CLIENT REGISTRY URL altında)
+
+8787 acamiyorsan: **`UZAK-TUNEL.bat`** → cikan https URL + `/v1` → panele yapistir.
+
+## 4) Firewall
+
+Windows: 7777 ve 8787 gelen baglantiya izin ver.
 
 ---
 
-## Hata alırsan
-
-| Mesaj | Çözüm |
-|-------|--------|
-| `node is not recognized` | Node.js kur, PC restart |
-| `npm is not recognized` | Node.js kurulumunu tekrarla |
-| `running scripts is disabled` | `KUR.bat` kullan (ExecutionPolicy bypass var) |
-| İndirme hatası | VPN kapat / farklı internet dene |
-| `Electron failed to install` | **`FIX-ELECTRON.bat`** çift tık (antivirus izin ver) → sonra **BASLAT-SERVER.bat** |
-
-Derin’e ekran görüntüsü at, hallederiz.
+Detay: [UZAK-OYUN.md](UZAK-OYUN.md)

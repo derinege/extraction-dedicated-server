@@ -1,4 +1,4 @@
-﻿﻿# INSTALL_SCRIPT_VERSION=3
+# INSTALL_SCRIPT_VERSION=3
 # Tek script - Git / GitHub CLI gerekmez.
 # Tekrar calistirinca SADECE eksik parcalari kurar.
 

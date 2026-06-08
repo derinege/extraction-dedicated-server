@@ -1,4 +1,4 @@
-﻿﻿# INSTALL_SCRIPT_VERSION=3
+# INSTALL_SCRIPT_VERSION=3
 # Helper - downloads fresh scripts from GitHub/jsDelivr.
 param(
   [string]$InstallDir = ""
@@ -24,6 +24,17 @@ $files = @(
 New-Item -ItemType Directory -Path $scriptDir -Force | Out-Null
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+function Write-Utf8NoBom($path, $text) {
+  $utf8 = New-Object System.Text.UTF8Encoding $false
+  [System.IO.File]::WriteAllText($path, $text, $utf8)
+}
+
+function Normalize-Ps1File($path) {
+  $text = [System.IO.File]::ReadAllText($path).TrimStart([char]0xFEFF)
+  Write-Utf8NoBom $path $text
+  return $text
+}
+
 function Download-ScriptFile($name) {
   $dest = Join-Path $scriptDir $name
   $urls = @(
@@ -35,7 +46,7 @@ function Download-ScriptFile($name) {
     try {
       Write-Host "  Indiriliyor: $url" -ForegroundColor DarkGray
       Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
-      $text = Get-Content -Path $dest -Raw
+      $text = Normalize-Ps1File $dest
       if ($text -match [regex]::Escape($versionMarker)) {
         Write-Host "  OK $name" -ForegroundColor Green
         return $true

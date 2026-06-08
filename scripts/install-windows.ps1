@@ -47,6 +47,37 @@ function Download-File($Url, $Dest) {
   }
 }
 
+function Ensure-FixElectronScript($InstallDir) {
+  $scriptDir = Join-Path $InstallDir "scripts"
+  $dest = Join-Path $scriptDir "fix-electron.ps1"
+  $ver = "INSTALL_SCRIPT_VERSION=4"
+  New-Item -ItemType Directory -Path $scriptDir -Force | Out-Null
+  if ((Test-Path $dest) -and ((Get-Content $dest -Raw) -match [regex]::Escape($ver)) -and ((Get-Content $dest -Raw) -notmatch 'Run-NpmLogged\(\$args\)')) {
+    Write-Skip "fix-electron.ps1 guncel"
+    return
+  }
+  $urls = @(
+    "https://raw.githubusercontent.com/derinege/extraction-dedicated-server/main/scripts/fix-electron.ps1",
+    ("https://cdn.jsdelivr.net/gh/derinege/extraction-dedicated-server@main/scripts/fix-electron.ps1?v=" + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds())
+  )
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  foreach ($u in $urls) {
+    try {
+      Write-Host "  fix-electron.ps1 indiriliyor..." -ForegroundColor DarkGray
+      Invoke-WebRequest -Uri $u -OutFile $dest -UseBasicParsing
+      $t = [IO.File]::ReadAllText($dest).TrimStart([char]0xFEFF)
+      [IO.File]::WriteAllText($dest, $t, (New-Object Text.UTF8Encoding $false))
+      if ($t -match [regex]::Escape($ver) -and $t -notmatch 'Run-NpmLogged\(\$args\)') {
+        Write-Host "  fix-electron.ps1 OK (v4)" -ForegroundColor Green
+        return
+      }
+    } catch {
+      Write-Host "  fix-electron indirme hatasi: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+  }
+  if (-not (Test-Path $dest)) { throw "fix-electron.ps1 indirilemedi" }
+}
+
 function Test-RegistryReady($Dir) {
   return (Test-Path (Join-Path $Dir "node_modules\express\package.json"))
 }
@@ -97,6 +128,7 @@ Write-Host "Klasor: $InstallDir"
 if ($Force) { Write-Host "Mod: TUMUNU YENIDEN KUR (-Force)" -ForegroundColor Yellow }
 
 Ensure-Node
+Ensure-FixElectronScript $InstallDir
 
 $panel = Join-Path $InstallDir "Tools\dedicated-server-manager"
 $registry = Join-Path $InstallDir "Tools\server-registry"

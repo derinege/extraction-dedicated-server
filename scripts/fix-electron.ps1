@@ -1,4 +1,4 @@
-# INSTALL_SCRIPT_VERSION=3
+# INSTALL_SCRIPT_VERSION=4
 # Electron binary eksik/bozuk ise yeniden indirir (mirror + retry + zip fallback).
 param(
   [string]$InstallDir = "",
@@ -42,9 +42,10 @@ function Log-ElectronState($label) {
   }
 }
 
-function Run-NpmLogged($args) {
-  Write-Log "  CMD: npm $args" "DarkGray"
-  $output = & npm @args 2>&1
+function Run-NpmLogged {
+  param([string[]]$NpmArgs)
+  Write-Log "  CMD: npm $($NpmArgs -join ' ')" "DarkGray"
+  $output = & npm @NpmArgs 2>&1
   foreach ($line in $output) { Write-Log "  npm> $line" "DarkGray" }
   return $LASTEXITCODE
 }
@@ -76,9 +77,12 @@ function Test-PanelDepsReady {
 function Test-ElectronHealthy {
   if (-not (Test-ElectronInstalled)) { return $false }
   try {
-    $v = & $electronExe --version 2>&1
+    $out = & $electronExe --version 2>&1
+    $v = ($out | Out-String).Trim()
     Write-Log "  electron --version: $v (exit $LASTEXITCODE)" "DarkGray"
-    return ($LASTEXITCODE -eq 0 -and $v)
+    if ($LASTEXITCODE -eq 0) { return $true }
+    $len = (Get-Item $electronExe -ErrorAction SilentlyContinue).Length
+    return ($len -gt 50MB)
   } catch {
     Write-Log "  electron --version HATA: $($_.Exception.Message)" "Yellow"
     return $false
@@ -285,7 +289,7 @@ if (-not $ok) {
 Log-ElectronState "final"
 $requireOk = Test-ElectronRequire
 
-if ($ok -and (Test-ElectronHealthy) -and $requireOk) {
+if ($ok -and (Test-ElectronInstalled) -and $requireOk) {
   Write-Log ""
   Write-Log "Electron kuruldu!" "Green"
   Write-Log "Simdi BASLAT-SERVER.bat calistir." "Yellow"

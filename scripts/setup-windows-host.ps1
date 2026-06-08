@@ -1,4 +1,4 @@
-# Eski script — install-windows.ps1 kullan (eksikleri tamamlar, kurulu olanlari atlar).
+# Eski script - install-windows.ps1 kullan.
 param(
   [string]$RepoUrl = "",
   [string]$TargetDir = "",

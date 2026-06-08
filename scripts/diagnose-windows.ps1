@@ -346,17 +346,25 @@ if ($script:Issues.Count -eq 0) {
 }
 $report += ""
 $report += "=== NE YAPMALI ==="
-if ($script:Issues -match "node_modules") {
-  $report += "1) TEMIZLE-ELECTRON.bat -> Yonetici olarak calistir"
-}
-if ($script:Issues -match "game") {
-  $report += "2) KUR.bat calistir (game.zip indirir) veya game.zip'i game\ klasorune cikar"
-}
-if ($script:Issues -match "Registry") {
-  $report += "3) KUR.bat calistir (registry npm)"
+$freshInstall = (-not (Test-Path $stateFile)) -or ($script:Issues -match "panel node_modules YOK")
+if ($freshInstall) {
+  $report += "!!! KURULUM HIC YAPILMAMIS - ONCE KUR.bat !!!"
+  $report += "1) KUR.bat calistir -> HAZIR yazana kadar bekle (~10-20 dk ilk sefer)"
+  $report += "2) Electron hata verirse: TEMIZLE-ELECTRON.bat (yonetici)"
+  $report += "3) BASLAT-SERVER.bat -> START DEDICATED SERVER"
+} else {
+  if ($script:Issues -match "node_modules|electron") {
+    $report += "1) TEMIZLE-ELECTRON.bat -> Yonetici olarak calistir"
+  }
+  if ($script:Issues -match "game") {
+    $report += "2) KUR.bat tekrar (game.zip indirir)"
+  }
+  if ($script:Issues -match "Registry") {
+    $report += "3) KUR.bat calistir (registry npm)"
+  }
 }
 if ($script:Issues -match "Internet") {
-  $report += "4) Internet / antivirus / VPN kontrol et"
+  $report += "- Internet / antivirus / VPN kontrol et"
 }
 if ($script:Issues.Count -eq 0) {
   $report += "BASLAT-SERVER.bat calistir -> START DEDICATED SERVER"

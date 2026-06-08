@@ -157,24 +157,6 @@ if (-not (Test-PanelReady $panel)) {
   Write-Skip "Panel + Electron zaten kurulu"
 }
 
-# --- Batch dosyalari (kisa, guncel tut) ---
-$startBat = Join-Path $InstallDir "BASLAT-SERVER.bat"
-@"
-@echo off
-title Extraction Dedicated Server
-cd /d "%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\fix-electron.ps1"
-if errorlevel 1 (
-  echo Electron eksik. FIX-ELECTRON.bat calistir.
-  pause
-  exit /b 1
-)
-cd Tools\dedicated-server-manager
-echo Panel aciliyor...
-call npm start
-pause
-"@ | Set-Content -Path $startBat -Encoding ASCII
-
 Save-InstallState $InstallDir $panel $registry $gameExe
 
 Write-Host ""
@@ -182,7 +164,7 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "  HAZIR" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Calistir: $startBat" -ForegroundColor Yellow
+Write-Host "Calistir: $(Join-Path $InstallDir 'BASLAT-SERVER.bat')" -ForegroundColor Yellow
 Write-Host "Panel -> START DEDICATED SERVER" -ForegroundColor Yellow
 Write-Host ""
 

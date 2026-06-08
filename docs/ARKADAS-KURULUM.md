@@ -1,43 +1,28 @@
-# Arkadaşın kasası — 5 dakika kurulum
+# Arkadaşın kasası — hazır kurulum
 
-**Oyun açılmaz.** Sadece panel + headless server.
+**Oyun açılmaz.** Panel + headless server.
 
-## 1) Node.js kur
-
-https://nodejs.org → LTS indir, kur.
-
-## 2) Repo + server dosyası
+## Tek komut zinciri (PowerShell)
 
 ```powershell
 git clone https://github.com/derinege/extraction-dedicated-server.git
 cd extraction-dedicated-server
-```
-
-**Derin'den `game.zip` al** (Discord/Drive) → repo klasörüne çıkart:
-
-```
-extraction-dedicated-server/
-  game/
-    ExtractionShooterServer.exe
-    ExtractionShooterServer_Data/
-```
-
-> `game/` yoksa panel açılır ama START çalışmaz.
-
-## 3) Kur + başlat
-
-```powershell
+powershell -ExecutionPolicy Bypass -File scripts\download-game.ps1
 powershell -ExecutionPolicy Bypass -File scripts\setup-windows-host.ps1
 cd Tools\dedicated-server-manager
 npm start
 ```
 
-Panel → **START DEDICATED SERVER**
+Panel → **START DEDICATED SERVER** → sana registry URL verir.
 
-Sana vereceği URL: `http://SENIN_LAN_IP:8787/v1`  
-(Bu IP panelde CLIENT REGISTRY URL altında yazar.)
+## Gereksinimler
 
-## Firewall
+- [Node.js LTS](https://nodejs.org)
+- Git
+- Firewall: **8787** TCP, **7777** UDP
 
-- **8787** TCP (registry)
-- **7777** UDP (oyun)
+## game.zip
+
+Release'ten otomatik iner: [game.zip](https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip)
+
+Manuel: indir → repo köküne çıkart → `game/` klasörü oluşsun.

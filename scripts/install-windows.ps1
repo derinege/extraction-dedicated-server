@@ -51,9 +51,33 @@ function Test-RegistryReady($Dir) {
   return (Test-Path (Join-Path $Dir "node_modules\express\package.json"))
 }
 
+function Test-ElectronReady($Dir) {
+  $pkg = Join-Path $Dir "node_modules\electron"
+  return (
+    (Test-Path (Join-Path $pkg "index.js")) -and
+    (Test-Path (Join-Path $pkg "cli.js")) -and
+    (Test-Path (Join-Path $pkg "path.txt")) -and
+    (Test-Path (Join-Path $pkg "dist\electron.exe"))
+  )
+}
+
 function Test-PanelReady($Dir) {
-  $electronExe = Join-Path $Dir "node_modules\electron\dist\electron.exe"
-  return (Test-Path $electronExe)
+  $nm = Join-Path $Dir "node_modules"
+  if (-not (Test-Path $nm)) { return $false }
+  $count = (Get-ChildItem $nm -Directory -ErrorAction SilentlyContinue).Count
+  return ($count -gt 5) -and (Test-ElectronReady $Dir)
+}
+
+function Invoke-FixElectron($InstallDir, [switch]$Force) {
+  $fixScript = Join-Path $InstallDir "scripts\fix-electron.ps1"
+  if (-not (Test-Path $fixScript)) { return $false }
+  Write-Host "  fix-electron.ps1 calistiriliyor..." -ForegroundColor DarkGray
+  if ($Force) {
+    & $fixScript -InstallDir $InstallDir -Force
+  } else {
+    & $fixScript -InstallDir $InstallDir
+  }
+  return ($LASTEXITCODE -eq 0)
 }
 
 function Save-InstallState($InstallDir, $panel, $registry, $gameExe) {
@@ -141,23 +165,36 @@ if (-not (Test-PanelReady $panel)) {
   Write-Step "Panel (npm install + Electron)"
   Set-Location $panel
   $env:NODE_ENV = "development"
-  if (-not (Test-Path "node_modules")) {
-    npm install --include=dev --foreground-scripts --no-audit --no-fund
-  }
-  $electronExe = Join-Path $panel "node_modules\electron\dist\electron.exe"
-  if (-not (Test-Path $electronExe)) {
-    Write-Host "  Electron eksik, FIX-ELECTRON ile indiriliyor (~150 MB)..." -ForegroundColor Yellow
-    $fixScript = Join-Path $InstallDir "scripts\fix-electron.ps1"
-    if (Test-Path $fixScript) {
-      & $fixScript -InstallDir $InstallDir
-      if ($LASTEXITCODE -ne 0) { throw "Electron kurulamadi. FIX-ELECTRON.bat calistir." }
-    } else {
-      Remove-Item -Recurse -Force (Join-Path $panel "node_modules\electron") -ErrorAction SilentlyContinue
-      npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit --no-fund --force
+
+  $panelNm = Join-Path $panel "node_modules"
+  if (Test-Path $panelNm) {
+    $nmCount = (Get-ChildItem $panelNm -Directory -ErrorAction SilentlyContinue).Count
+    if ($nmCount -lt 10 -or -not (Test-ElectronReady $panel)) {
+      Write-Host "  node_modules eksik/bozuk ($nmCount paket), yeniden kuruluyor..." -ForegroundColor Yellow
+      Remove-Item -Recurse -Force $panelNm -ErrorAction SilentlyContinue
     }
   }
-  if (-not (Test-Path $electronExe)) {
-    throw "Electron kurulamadi. FIX-ELECTRON.bat calistir."
+
+  if (-not (Test-Path $panelNm)) {
+    Write-Host "  npm install (panel)..." -ForegroundColor DarkGray
+    npm install --include=dev --foreground-scripts --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "  npm install uyarisi (exit $LASTEXITCODE), fix-electron ile devam..." -ForegroundColor Yellow
+    }
+  }
+
+  if (-not (Test-ElectronReady $panel)) {
+    Write-Host "  Electron tam degil, fix-electron calistiriliyor (~150 MB)..." -ForegroundColor Yellow
+    if (-not (Invoke-FixElectron $InstallDir)) {
+      Write-Host "  Ilk deneme basarisiz, Force ile tekrar..." -ForegroundColor Yellow
+      if (-not (Invoke-FixElectron $InstallDir -Force)) {
+        throw "Electron kurulamadi. TEMIZLE-ELECTRON.bat calistir, log: extraction-debug.log"
+      }
+    }
+  }
+
+  if (-not (Test-PanelReady $panel)) {
+    throw "Panel kurulamadi. DIAGNOSTIK.bat calistir, log gonder."
   }
   Write-Host "  OK" -ForegroundColor Green
 } else {

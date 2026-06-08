@@ -15,7 +15,10 @@ echo Kurulum bitti.
 goto end
 :fail
 echo.
-echo Kurulum basarisiz. Internet / antivirus kontrol et.
+echo Kurulum basarisiz.
+echo Log: extraction-debug.log
+echo Electron icin: TEMIZLE-ELECTRON.bat (yonetici)
+echo Tanı icin: DIAGNOSTIK.bat
 :end
 echo.
 pause

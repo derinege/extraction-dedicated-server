@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Extraction Dedicated Server</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <p class="eyebrow">EXTRACTION SHOOTER</p>
+        <h1>DEDICATED SERVER PANEL</h1>
+        <p class="sub">Sadece headless sunucu — harita / raid host oyuncunun launcher'inda secilir</p>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <h2>NETWORK</h2>
+          <label>GAME PORT<input id="port" type="number" min="1" max="65535" /></label>
+          <label>REGISTRY PORT<input id="registryPort" type="number" min="1" max="65535" /></label>
+          <label>PUBLIC / LAN IP
+            <input id="publicAddress" type="text" placeholder="Otomatik LAN IP" />
+          </label>
+          <p class="hint">Router: GAME PORT (7777) + REGISTRY PORT (8787) forward</p>
+          <div class="info-box compact">
+            <p class="label">CLIENT REGISTRY URL</p>
+            <code id="clientRegistryUrl">—</code>
+            <p class="label">GAME ENDPOINT</p>
+            <code id="clientGameEndpoint">—</code>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>SERVER HEALTH</h2>
+          <div class="status-row">
+            <span>Registry</span>
+            <span id="registryStatus" class="badge off">OFFLINE</span>
+          </div>
+          <div class="status-row">
+            <span>Game process</span>
+            <span id="serverStatus" class="badge off">OFFLINE</span>
+          </div>
+          <div class="status-row">
+            <span>Heartbeat</span>
+            <span id="heartbeatStatus" class="badge off">—</span>
+          </div>
+          <div class="status-row">
+            <span>Uptime</span>
+            <span id="uptime" class="mono">—</span>
+          </div>
+          <div class="status-row">
+            <span>Players</span>
+            <span id="playerCount" class="mono">0 / 8</span>
+          </div>
+          <div class="status-row">
+            <span>Active map</span>
+            <span id="activeScene" class="mono dim">—</span>
+          </div>
+          <div class="status-row">
+            <span>Binary</span>
+            <span id="binaryPath" class="mono dim truncate">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card players-card">
+        <h2>CONNECTED PLAYERS</h2>
+        <table class="players-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>NAME</th>
+              <th>PING</th>
+            </tr>
+          </thead>
+          <tbody id="playersBody">
+            <tr class="empty-row">
+              <td colspan="3">Sunucu kapali veya oyuncu yok</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="actions">
+        <button id="btnStart" class="primary">START DEDICATED SERVER</button>
+        <button id="btnStop" class="danger" disabled>STOP ALL</button>
+      </section>
+
+      <section class="log-card">
+        <h2>LOG</h2>
+        <pre id="log"></pre>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

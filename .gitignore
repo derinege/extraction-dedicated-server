@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.DS_Store
+
+# Game binaries — build locally, do not commit
+game/
+**/game/
+*.exe
+*.dmg
+*.zip
+
+# Unity / launcher / dev junk (not part of this repo)
+asıl proje/
+Extractionshootermainmenuui/
+_our-layer/
+claude_ui/
+.venv-menu/
+.cursor/
+BuildLogs/
+release/dedicated-server/game/

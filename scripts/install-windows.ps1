@@ -1,5 +1,5 @@
-# Tek script — Git / GitHub CLI gerekmez.
-# Tekrar calistirinca SADECE eksik parcalari kurar (zaten kurulu olanlari atlar).
+# Tek script - Git / GitHub CLI gerekmez.
+# Tekrar calistirinca SADECE eksik parcalari kurar.
 
 param(
   [string]$InstallDir = "",
@@ -29,8 +29,8 @@ function Ensure-Node {
   if (-not $node) {
     Write-Host ""
     Write-Host "HATA: Node.js yok." -ForegroundColor Red
-    Write-Host "1) https://nodejs.org -> LTS kur" -ForegroundColor Yellow
-    Write-Host "2) PC restart -> KUR.bat tekrar" -ForegroundColor Yellow
+    Write-Host "1) https://nodejs.org LTS kur" -ForegroundColor Yellow
+    Write-Host "2) PC restart, KUR.bat tekrar" -ForegroundColor Yellow
     exit 1
   }
   Write-Host "Node: $(node -v)  npm: $(npm -v)" -ForegroundColor DarkGray
@@ -77,10 +77,11 @@ $panel = Join-Path $InstallDir "Tools\dedicated-server-manager"
 $registry = Join-Path $InstallDir "Tools\server-registry"
 $gameExe = Join-Path $InstallDir "game\ExtractionShooterServer.exe"
 
-# --- Repo dosyalari ---
 if ($Force -or -not (Test-Path $panel)) {
   Write-Step "Panel dosyalari"
-  if (Test-Path $panel) { Write-Host "  Force: mevcut panel dosyalari korunuyor (sadece npm/game yenilenebilir)" -ForegroundColor DarkGray }
+  if (Test-Path $panel) {
+    Write-Host "  Force: panel dosyalari korunuyor" -ForegroundColor DarkGray
+  }
   if (-not (Test-Path $panel)) {
     $tmp = Join-Path $env:TEMP "extraction-server-setup"
     New-Item -ItemType Directory -Path $tmp -Force | Out-Null
@@ -100,7 +101,6 @@ if ($Force -or -not (Test-Path $panel)) {
 
 if (-not (Test-Path $panel)) { throw "Tools\dedicated-server-manager bulunamadi: $InstallDir" }
 
-# --- game.zip ---
 if ($Force) {
   Remove-Item -Force $gameExe -ErrorAction SilentlyContinue
 }
@@ -114,10 +114,9 @@ if (-not (Test-Path $gameExe)) {
   if (-not (Test-Path $gameExe)) { throw "game\ExtractionShooterServer.exe olusmadi" }
   Write-Host "  OK" -ForegroundColor Green
 } else {
-  Write-Skip "Server binary zaten var (game\ExtractionShooterServer.exe)"
+  Write-Skip "Server binary zaten var"
 }
 
-# --- Registry npm ---
 if ($Force -and (Test-Path (Join-Path $registry "node_modules"))) {
   Remove-Item -Recurse -Force (Join-Path $registry "node_modules")
 }
@@ -131,7 +130,6 @@ if (-not (Test-RegistryReady $registry)) {
   Write-Skip "Registry npm zaten kurulu"
 }
 
-# --- Panel npm + Electron ---
 if ($Force) {
   Remove-Item -Recurse -Force (Join-Path $panel "node_modules") -ErrorAction SilentlyContinue
 }
@@ -145,7 +143,7 @@ if (-not (Test-PanelReady $panel)) {
   }
   $electronExe = Join-Path $panel "node_modules\electron\dist\electron.exe"
   if (-not (Test-Path $electronExe)) {
-    Write-Host "  Electron binary eksik — indiriliyor (~150 MB)..." -ForegroundColor Yellow
+    Write-Host "  Electron eksik, indiriliyor (~150 MB)..." -ForegroundColor Yellow
     Remove-Item -Recurse -Force (Join-Path $panel "node_modules\electron") -ErrorAction SilentlyContinue
     npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit --no-fund
   }
@@ -159,13 +157,14 @@ if (-not (Test-PanelReady $panel)) {
 
 Save-InstallState $InstallDir $panel $registry $gameExe
 
+$startBat = Join-Path $InstallDir "BASLAT-SERVER.bat"
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  HAZIR" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Calistir: $(Join-Path $InstallDir 'BASLAT-SERVER.bat')" -ForegroundColor Yellow
-Write-Host "Panel -> START DEDICATED SERVER" -ForegroundColor Yellow
+Write-Host "Calistir: $startBat" -ForegroundColor Yellow
+Write-Host "Panelde START DEDICATED SERVER" -ForegroundColor Yellow
 Write-Host ""
 
 Set-Location $InstallDir

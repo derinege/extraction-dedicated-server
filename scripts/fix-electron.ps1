@@ -1,4 +1,4 @@
-# Electron binary eksik/bozuk ise yeniden indirir (Windows'ta sik hata).
+# Electron binary eksik/bozuk ise yeniden indirir.
 param(
   [string]$InstallDir = ""
 )
@@ -17,7 +17,7 @@ if (Test-Path $electronExe) {
 }
 
 Write-Host ""
-Write-Host "Electron eksik — yeniden indiriliyor (~150 MB, 1-2 dk)..." -ForegroundColor Yellow
+Write-Host "Electron eksik, yeniden indiriliyor (~150 MB)..." -ForegroundColor Yellow
 Write-Host "Antivirus uyarsa izin ver." -ForegroundColor Yellow
 Write-Host ""
 
@@ -27,18 +27,16 @@ if (Test-Path "node_modules\electron") {
   Remove-Item -Recurse -Force "node_modules\electron"
 }
 
-# devDependencies dahil, postinstall script calissin
 npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit --no-fund
 
 if (-not (Test-Path $electronExe)) {
   Write-Host ""
   Write-Host "HATA: Electron hala kurulamadi." -ForegroundColor Red
-  Write-Host "Dene:" -ForegroundColor Yellow
-  Write-Host "  1) PowerShell'i Yonetici olarak ac" -ForegroundColor Yellow
+  Write-Host "  1) PowerShell Yonetici olarak ac" -ForegroundColor Yellow
   Write-Host "  2) Antivirus gecici kapat" -ForegroundColor Yellow
   Write-Host "  3) FIX-ELECTRON.bat tekrar calistir" -ForegroundColor Yellow
   exit 1
 }
 
 Write-Host ""
-Write-Host "Electron kuruldu. Simdi BASLAT-SERVER.bat calistir." -ForegroundColor Green
+Write-Host "Electron kuruldu. BASLAT-SERVER.bat calistir." -ForegroundColor Green

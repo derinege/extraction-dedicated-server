@@ -17,7 +17,7 @@ docs/DEDICATED-SERVER-HOST.md
 ## Windows (arkadaş)
 
 ```powershell
-git clone https://github.com/derinege/REPO_NAME.git
+git clone https://github.com/derinege/extraction-dedicated-server.git
 cd REPO_NAME
 powershell -ExecutionPolicy Bypass -File scripts\setup-windows-host.ps1
 cd Tools\dedicated-server-manager

@@ -1,7 +1,8 @@
 # INSTALL_SCRIPT_VERSION=3
 # Electron binary eksik/bozuk ise yeniden indirir (mirror + retry).
 param(
-  [string]$InstallDir = ""
+  [string]$InstallDir = "",
+  [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,6 +27,32 @@ function Ensure-Node {
     exit 1
   }
   Write-Log "Node: $(node -v)  npm: $(npm -v)" "DarkGray"
+}
+
+function Remove-ElectronInstall {
+  Write-Log "Electron siliniyor (temiz kurulum)..." "Yellow"
+  $targets = @(
+    (Join-Path $panel "node_modules\electron"),
+    (Join-Path $panel "node_modules\.bin\electron.cmd"),
+    (Join-Path $panel "node_modules\.bin\electron.ps1")
+  )
+  foreach ($t in $targets) {
+    if (Test-Path $t) {
+      Remove-Item -Recurse -Force $t -ErrorAction SilentlyContinue
+      Write-Log "  Silindi: $t" "DarkGray"
+    }
+  }
+  Clear-ElectronCache
+}
+
+function Test-ElectronHealthy {
+  if (-not (Test-Path $electronExe)) { return $false }
+  try {
+    $v = & $electronExe --version 2>&1
+    return ($LASTEXITCODE -eq 0 -and $v)
+  } catch {
+    return $false
+  }
 }
 
 function Clear-ElectronCache {
@@ -93,13 +120,18 @@ if ($InstallDir -match "OneDrive") {
 
 Ensure-Node
 
-if (Test-Path $electronExe) {
+if ($Force) {
+  Remove-ElectronInstall
+} elseif (Test-ElectronHealthy) {
   Write-Log "Electron zaten kurulu: $electronExe" "Green"
   exit 0
+} elseif (Test-Path $electronExe) {
+  Write-Log "Electron dosyasi var ama bozuk, yeniden kuruluyor..." "Yellow"
+  Remove-ElectronInstall
 }
 
 Ensure-PanelDeps
-Clear-ElectronCache
+if (-not $Force) { Clear-ElectronCache }
 
 $attempts = @(
   @{ Label = "GitHub (varsayilan)"; Mirror = $null },

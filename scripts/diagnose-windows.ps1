@@ -76,6 +76,9 @@ Run-Cmd "ELECTRON DOSYALARI" {
     Log "  node_modules/electron YOK"
     return
   }
+  Log "  index.js: $(Test-Path (Join-Path $electronPkg 'index.js'))"
+  Log "  cli.js: $(Test-Path (Join-Path $electronPkg 'cli.js'))"
+  Log "  package.json: $(Test-Path (Join-Path $electronPkg 'package.json'))"
   Log "  path.txt: $(Test-Path $pathTxt)"
   if (Test-Path $pathTxt) { Log "  path.txt icerik: $(Get-Content $pathTxt -Raw)" }
   Log "  dist/electron.exe: $(Test-Path $electronExe)"

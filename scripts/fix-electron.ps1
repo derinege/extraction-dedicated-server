@@ -26,15 +26,20 @@ function Write-Log($msg, $color = "White") {
 
 function Log-ElectronState($label) {
   Write-Log "--- Electron durum: $label ---" "DarkGray"
+  Write-Log "  index.js var: $(Test-Path (Join-Path $electronPkg 'index.js'))" "DarkGray"
+  Write-Log "  cli.js var: $(Test-Path (Join-Path $electronPkg 'cli.js'))" "DarkGray"
+  Write-Log "  package.json var: $(Test-Path (Join-Path $electronPkg 'package.json'))" "DarkGray"
   Write-Log "  path.txt var: $(Test-Path $pathTxt)" "DarkGray"
   if (Test-Path $pathTxt) { Write-Log "  path.txt: $(Get-Content $pathTxt -Raw)" "DarkGray" }
   Write-Log "  electron.exe var: $(Test-Path $electronExe)" "DarkGray"
   if (Test-Path $electronExe) {
     Write-Log "  electron.exe boyut: $((Get-Item $electronExe).Length) byte" "DarkGray"
   }
-  $verFile = Join-Path $electronPkg "dist\version"
-  Write-Log "  dist/version var: $(Test-Path $verFile)" "DarkGray"
-  if (Test-Path $verFile) { Write-Log "  dist/version: $(Get-Content $verFile -Raw)" "DarkGray" }
+  $nm = Join-Path $panel "node_modules"
+  if (Test-Path $nm) {
+    $count = (Get-ChildItem $nm -Directory -ErrorAction SilentlyContinue).Count
+    Write-Log "  node_modules klasor sayisi: $count" "DarkGray"
+  }
 }
 
 function Run-NpmLogged($args) {
@@ -56,7 +61,16 @@ function Ensure-Node {
 }
 
 function Test-ElectronInstalled {
-  return (Test-Path $pathTxt) -and (Test-Path $electronExe)
+  $cli = Join-Path $electronPkg "cli.js"
+  $idx = Join-Path $electronPkg "index.js"
+  return (Test-Path $pathTxt) -and (Test-Path $electronExe) -and (Test-Path $cli) -and (Test-Path $idx)
+}
+
+function Test-PanelDepsReady {
+  $nm = Join-Path $panel "node_modules"
+  if (-not (Test-Path $nm)) { return $false }
+  $count = (Get-ChildItem $nm -Directory -ErrorAction SilentlyContinue).Count
+  return ($count -gt 5) -and (Test-ElectronInstalled)
 }
 
 function Test-ElectronHealthy {
@@ -115,11 +129,18 @@ function Ensure-PanelDeps {
   }
   Set-Location $panel
   $env:NODE_ENV = "development"
-  if (-not (Test-Path "node_modules")) {
+  if (Test-PanelDepsReady) { return }
+
+  $nm = Join-Path $panel "node_modules"
+  if (Test-Path $nm) {
+    Write-Log "node_modules eksik/bozuk, tamamen silinip yeniden kuruluyor..." "Yellow"
+    Remove-Item -Recurse -Force $nm -ErrorAction SilentlyContinue
+  } else {
     Write-Log "node_modules yok, panel bagimliliklari kuruluyor..." "Yellow"
-    $code = Run-NpmLogged @("install", "--include=dev", "--foreground-scripts", "--no-audit", "--no-fund", "--loglevel", "verbose")
-    if ($code -ne 0) { Write-Log "panel npm install exit: $code" "Yellow" }
   }
+
+  $code = Run-NpmLogged @("install", "--include=dev", "--foreground-scripts", "--no-audit", "--no-fund", "--loglevel", "verbose")
+  if ($code -ne 0) { Write-Log "panel npm install exit: $code" "Yellow" }
 }
 
 function Run-ElectronPostinstall {
@@ -143,7 +164,10 @@ function Run-ElectronPostinstall {
 
 function Install-ElectronFromZip($label, $mirrorBase) {
   Write-Log "ZIP fallback: $label" "Cyan"
-  if (-not (Test-Path (Join-Path $electronPkg "package.json"))) {
+  if (-not (Test-Path (Join-Path $electronPkg "cli.js"))) {
+    if (Test-Path $electronPkg) {
+      Remove-Item -Recurse -Force $electronPkg -ErrorAction SilentlyContinue
+    }
     Run-NpmLogged @("install", "electron@$ElectronVersion", "--save-dev", "--no-audit", "--no-fund", "--ignore-scripts")
   }
 

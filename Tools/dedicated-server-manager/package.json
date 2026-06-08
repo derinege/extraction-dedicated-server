@@ -5,7 +5,7 @@
   "description": "Dedicated server + registry panel for host PC",
   "main": "electron/main.cjs",
   "scripts": {
-    "start": "electron .",
+    "start": "node ./node_modules/electron/cli.js .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win portable",

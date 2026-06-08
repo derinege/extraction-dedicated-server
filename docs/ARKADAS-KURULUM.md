@@ -1,28 +1,56 @@
-# Arkadaşın kasası — hazır kurulum
+# Arkadaş — teknik bilgi gerekmez
 
-**Oyun açılmaz.** Panel + headless server.
+## 1) Node.js kur (1 kere)
 
-## Tek komut zinciri (PowerShell)
+1. Tarayıcıda aç: **https://nodejs.org**
+2. **LTS** yeşil buton → indir → kur → Next Next Finish
+3. PC’yi yeniden başlat (veya PowerShell kapat-aç)
 
-```powershell
-git clone https://github.com/derinege/extraction-dedicated-server.git
-cd extraction-dedicated-server
-powershell -ExecutionPolicy Bypass -File scripts\download-game.ps1
-powershell -ExecutionPolicy Bypass -File scripts\setup-windows-host.ps1
-cd Tools\dedicated-server-manager
-npm start
+> GitHub CLI **gerekmez**. Git **gerekmez**.
+
+---
+
+## 2) Dosyaları indir
+
+Tarayıcıdan bu zip’i indir (GitHub hesabı gerekmez):
+
+**https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip**
+
+Zip’i aç → klasörü masaüstüne koy, adı fark etmez.
+
+---
+
+## 3) Kur
+
+Klasörün içinde **`KUR.bat`** dosyasına **çift tık**.
+
+- İlk sefer ~335 MB server dosyası indirir (normal)
+- Bitti deyince kapansın
+
+---
+
+## 4) Server başlat
+
+Aynı klasörde **`BASLAT-SERVER.bat`** çift tık.
+
+Panel açılınca → **START DEDICATED SERVER**
+
+Derin’e panelde yazan adresi at:
 ```
+http://SENIN_IP:8787/v1
+```
+(IP panelde CLIENT REGISTRY URL altında)
 
-Panel → **START DEDICATED SERVER** → sana registry URL verir.
+---
 
-## Gereksinimler
+## Hata alırsan
 
-- [Node.js LTS](https://nodejs.org)
-- Git
-- Firewall: **8787** TCP, **7777** UDP
+| Mesaj | Çözüm |
+|-------|--------|
+| `node is not recognized` | Node.js kur, PC restart |
+| `npm is not recognized` | Node.js kurulumunu tekrarla |
+| `running scripts is disabled` | `KUR.bat` kullan (ExecutionPolicy bypass var) |
+| İndirme hatası | VPN kapat / farklı internet dene |
+| `BINARY NOT FOUND` | `KUR.bat` tekrar çalıştır |
 
-## game.zip
-
-Release'ten otomatik iner: [game.zip](https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip)
-
-Manuel: indir → repo köküne çıkart → `game/` klasörü oluşsun.
+Derin’e ekran görüntüsü at, hallederiz.

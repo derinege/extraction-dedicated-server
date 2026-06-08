@@ -1,26 +1,17 @@
 # Extraction Shooter — Dedicated Server Host
 
-Arkadaşın kasalı PC için: registry + headless dedicated panel.
+Arkadaşın kasalı PC: panel + headless server (oyun client değil).
 
-**Unity kodu bu repoda yok** — sadece sunucu kurulum araçları.
+## Arkadaş (Windows) — Git yok, GitHub CLI yok
 
-## Arkadaş (Windows) — hazır
+1. **Node.js LTS** → https://nodejs.org (kur, restart)
+2. Zip indir → https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip
+3. Aç → **`KUR.bat`** çift tık
+4. **`BASLAT-SERVER.bat`** çift tık → START DEDICATED SERVER
 
-```powershell
-git clone https://github.com/derinege/extraction-dedicated-server.git
-cd extraction-dedicated-server
-powershell -ExecutionPolicy Bypass -File scripts\download-game.ps1
-powershell -ExecutionPolicy Bypass -File scripts\setup-windows-host.ps1
-cd Tools\dedicated-server-manager
-npm start
-```
+📄 Detay: [docs/ARKADAS-KURULUM.md](docs/ARKADAS-KURULUM.md)
 
-**Server binary:** [game.zip](https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip) (335 MB, Release — git'e değil)
+## Oyuncular (Derin)
 
-Panel → **START DEDICATED SERVER** (oyun penceresi yok)
-
-📄 [Arkadaş kurulumu](docs/ARKADAS-KURULUM.md)
-
-## Oyuncular (siz)
-
-Launcher → Settings → Registry URL = `http://HOST_IP:8787/v1` → HOST & PLAY / FIND RAID
+Launcher → **SETTINGS → NETWORK → SERVER REGISTRY URL**  
+Örnek: `http://192.168.1.50:8787/v1` (arkadaşın panel IP’si)

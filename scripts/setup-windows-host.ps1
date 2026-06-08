@@ -2,10 +2,14 @@
 # Kullanim: PowerShell -ExecutionPolicy Bypass -File setup-windows-host.ps1
 param(
   [string]$RepoUrl = "",
-  [string]$TargetDir = "$env:USERPROFILE\ExtractionDedicatedServer"
+  [string]$TargetDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $TargetDir) {
+  $TargetDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+}
 
 Write-Host "=== Extraction Dedicated Server (Windows) ===" -ForegroundColor Cyan
 

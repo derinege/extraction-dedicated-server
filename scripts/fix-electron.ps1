@@ -5,7 +5,7 @@ param(
   [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ElectronVersion = "35.1.5"
 
 if (-not $InstallDir) {
@@ -16,21 +16,43 @@ $panel = Join-Path $InstallDir "Tools\dedicated-server-manager"
 $electronPkg = Join-Path $panel "node_modules\electron"
 $electronExe = Join-Path $electronPkg "dist\electron.exe"
 $pathTxt = Join-Path $electronPkg "path.txt"
-$logFile = Join-Path $InstallDir "electron-install.log"
+$logFile = Join-Path $InstallDir "extraction-debug.log"
 
 function Write-Log($msg, $color = "White") {
-  $line = "[$(Get-Date -Format 'HH:mm:ss')] $msg"
+  $line = "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $msg"
   Add-Content -Path $logFile -Value $line -Encoding UTF8
   Write-Host $msg -ForegroundColor $color
+}
+
+function Log-ElectronState($label) {
+  Write-Log "--- Electron durum: $label ---" "DarkGray"
+  Write-Log "  path.txt var: $(Test-Path $pathTxt)" "DarkGray"
+  if (Test-Path $pathTxt) { Write-Log "  path.txt: $(Get-Content $pathTxt -Raw)" "DarkGray" }
+  Write-Log "  electron.exe var: $(Test-Path $electronExe)" "DarkGray"
+  if (Test-Path $electronExe) {
+    Write-Log "  electron.exe boyut: $((Get-Item $electronExe).Length) byte" "DarkGray"
+  }
+  $verFile = Join-Path $electronPkg "dist\version"
+  Write-Log "  dist/version var: $(Test-Path $verFile)" "DarkGray"
+  if (Test-Path $verFile) { Write-Log "  dist/version: $(Get-Content $verFile -Raw)" "DarkGray" }
+}
+
+function Run-NpmLogged($args) {
+  Write-Log "  CMD: npm $args" "DarkGray"
+  $output = & npm @args 2>&1
+  foreach ($line in $output) { Write-Log "  npm> $line" "DarkGray" }
+  return $LASTEXITCODE
 }
 
 function Ensure-Node {
   $node = Get-Command node -ErrorAction SilentlyContinue
   if (-not $node) {
-    Write-Log "HATA: Node.js yok. https://nodejs.org LTS kur, PC restart." "Red"
+    Write-Log "HATA: Node.js yok. https://nodejs.org kur, PC restart." "Red"
     exit 1
   }
+  Write-Log "Node path: $($node.Source)" "DarkGray"
   Write-Log "Node: $(node -v)  npm: $(npm -v)" "DarkGray"
+  Write-Log "OS: $([System.Environment]::OSVersion.VersionString)  Admin: $(([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))" "DarkGray"
 }
 
 function Test-ElectronInstalled {
@@ -41,10 +63,20 @@ function Test-ElectronHealthy {
   if (-not (Test-ElectronInstalled)) { return $false }
   try {
     $v = & $electronExe --version 2>&1
+    Write-Log "  electron --version: $v (exit $LASTEXITCODE)" "DarkGray"
     return ($LASTEXITCODE -eq 0 -and $v)
   } catch {
+    Write-Log "  electron --version HATA: $($_.Exception.Message)" "Yellow"
     return $false
   }
+}
+
+function Test-ElectronRequire {
+  if (-not (Test-Path (Join-Path $panel "node_modules\electron\index.js"))) { return $false }
+  Set-Location $panel
+  $out = node -e "try{console.log(require('electron'))}catch(e){console.error(e.message);process.exit(1)}" 2>&1
+  foreach ($line in $out) { Write-Log "  require> $line" "DarkGray" }
+  return ($LASTEXITCODE -eq 0)
 }
 
 function Clear-ElectronCache {
@@ -85,7 +117,8 @@ function Ensure-PanelDeps {
   $env:NODE_ENV = "development"
   if (-not (Test-Path "node_modules")) {
     Write-Log "node_modules yok, panel bagimliliklari kuruluyor..." "Yellow"
-    npm install --include=dev --foreground-scripts --no-audit --no-fund
+    $code = Run-NpmLogged @("install", "--include=dev", "--foreground-scripts", "--no-audit", "--no-fund", "--loglevel", "verbose")
+    if ($code -ne 0) { Write-Log "panel npm install exit: $code" "Yellow" }
   }
 }
 
@@ -94,9 +127,13 @@ function Run-ElectronPostinstall {
   if (-not (Test-Path $installJs)) { return $false }
   Write-Log "Electron binary indiriliyor (install.js)..." "DarkGray"
   $env:force_no_cache = "true"
-  & node $installJs
+  $env:DEBUG = "@electron/get*"
+  $out = & node $installJs 2>&1
+  foreach ($line in $out) { Write-Log "  install.js> $line" "DarkGray" }
   $code = $LASTEXITCODE
   Remove-Item Env:force_no_cache -ErrorAction SilentlyContinue
+  Remove-Item Env:DEBUG -ErrorAction SilentlyContinue
+  Log-ElectronState "install.js sonrasi"
   if ($code -ne 0) {
     Write-Log "  install.js cikis kodu: $code" "Yellow"
     return $false
@@ -107,7 +144,7 @@ function Run-ElectronPostinstall {
 function Install-ElectronFromZip($label, $mirrorBase) {
   Write-Log "ZIP fallback: $label" "Cyan"
   if (-not (Test-Path (Join-Path $electronPkg "package.json"))) {
-    npm install "electron@$ElectronVersion" --save-dev --no-audit --no-fund --ignore-scripts
+    Run-NpmLogged @("install", "electron@$ElectronVersion", "--save-dev", "--no-audit", "--no-fund", "--ignore-scripts")
   }
 
   $distDir = Join-Path $electronPkg "dist"
@@ -121,18 +158,22 @@ function Install-ElectronFromZip($label, $mirrorBase) {
   $tmpZip = Join-Path $env:TEMP $zipName
   Write-Log "  Indiriliyor: $url" "DarkGray"
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing
-
-  if (Test-Path $distDir) {
-    Remove-Item -Recurse -Force $distDir
+  try {
+    Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing
+    Write-Log "  ZIP indirildi: $((Get-Item $tmpZip).Length) byte" "DarkGray"
+  } catch {
+    Write-Log "  ZIP indirme HATA: $($_.Exception.Message)" "Red"
+    return $false
   }
+
+  if (Test-Path $distDir) { Remove-Item -Recurse -Force $distDir }
   New-Item -ItemType Directory -Path $distDir -Force | Out-Null
   Expand-Archive -Path $tmpZip -DestinationPath $distDir -Force
   Remove-Item $tmpZip -Force -ErrorAction SilentlyContinue
 
   Set-Content -Path $pathTxt -Value "electron.exe" -NoNewline -Encoding ASCII
   Set-Content -Path (Join-Path $distDir "version") -Value "v$ElectronVersion" -NoNewline -Encoding ASCII
-
+  Log-ElectronState "ZIP sonrasi"
   return (Test-ElectronInstalled)
 }
 
@@ -149,7 +190,8 @@ function Try-InstallElectron($label, $mirror) {
     Remove-Item -Recurse -Force $electronPkg -ErrorAction SilentlyContinue
   }
 
-  npm install "electron@$ElectronVersion" --save-dev --foreground-scripts --no-audit --no-fund --force
+  $code = Run-NpmLogged @("install", "electron@$ElectronVersion", "--save-dev", "--foreground-scripts", "--no-audit", "--no-fund", "--force", "--loglevel", "verbose")
+  Log-ElectronState "npm install sonrasi (exit $code)"
   if (Test-ElectronInstalled) { return $true }
   if (Run-ElectronPostinstall) { return $true }
   return $false
@@ -166,14 +208,15 @@ if ($InstallDir -match "OneDrive") {
 }
 
 Ensure-Node
+Log-ElectronState "baslangic"
 
 if ($Force) {
   Remove-ElectronInstall
-} elseif (Test-ElectronHealthy) {
+} elseif (Test-ElectronHealthy -and (Test-ElectronRequire)) {
   Write-Log "Electron OK: $electronExe" "Green"
   exit 0
 } elseif (Test-Path $electronPkg) {
-  Write-Log "Electron eksik/bozuk (path.txt veya exe yok), yeniden kuruluyor..." "Yellow"
+  Write-Log "Electron eksik/bozuk, yeniden kuruluyor..." "Yellow"
   Remove-ElectronInstall
 }
 
@@ -215,7 +258,10 @@ if (-not $ok) {
   }
 }
 
-if ($ok -and (Test-ElectronHealthy)) {
+Log-ElectronState "final"
+$requireOk = Test-ElectronRequire
+
+if ($ok -and (Test-ElectronHealthy) -and $requireOk) {
   Write-Log ""
   Write-Log "Electron kuruldu!" "Green"
   Write-Log "Simdi BASLAT-SERVER.bat calistir." "Yellow"
@@ -223,8 +269,8 @@ if ($ok -and (Test-ElectronHealthy)) {
 }
 
 Write-Log ""
-Write-Log "HATA: Electron hala kurulamadi." "Red"
-Write-Log "  1) TEMIZLE-ELECTRON.bat -> sag tik -> Yonetici olarak calistir" "Yellow"
-Write-Log "  2) Antivirus gecici kapat, tekrar dene" "Yellow"
-Write-Log "  3) electron-install.log dosyasini Derin'e at" "Yellow"
+Write-Log "HATA: Electron kurulamadi." "Red"
+Write-Log "  1) DIAGNOSTIK.bat calistir" "Yellow"
+Write-Log "  2) extraction-debug.log dosyasini Derin'e at" "Yellow"
+Write-Log "  3) TEMIZLE-ELECTRON.bat -> Yonetici olarak tekrar dene" "Yellow"
 exit 1

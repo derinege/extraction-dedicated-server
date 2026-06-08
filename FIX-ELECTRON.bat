@@ -4,7 +4,7 @@ cd /d "%~dp0"
 echo.
 echo  Electron yeniden indiriliyor (~150 MB)...
 echo  Antivirus uyarsa IZIN VER.
-echo  Log: electron-install.log
+echo  Log: extraction-debug.log
 echo.
 if not exist "scripts" mkdir "scripts"
 if not exist "scripts\fix-electron.ps1" (
@@ -14,7 +14,7 @@ if not exist "scripts\fix-electron.ps1" (
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\fix-electron.ps1"
 if errorlevel 1 (
   echo.
-  echo Basarisiz. electron-install.log dosyasina bak.
+  echo Basarisiz. DIAGNOSTIK.bat calistir, extraction-debug.log dosyasini Derin'e at.
 )
 echo.
 pause

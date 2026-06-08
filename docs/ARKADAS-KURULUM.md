@@ -51,6 +51,6 @@ http://SENIN_IP:8787/v1
 | `npm is not recognized` | Node.js kurulumunu tekrarla |
 | `running scripts is disabled` | `KUR.bat` kullan (ExecutionPolicy bypass var) |
 | İndirme hatası | VPN kapat / farklı internet dene |
-| `BINARY NOT FOUND` | `KUR.bat` tekrar çalıştır |
+| `Electron failed to install` | **`FIX-ELECTRON.bat`** çift tık (antivirus izin ver) → sonra **BASLAT-SERVER.bat** |
 
 Derin’e ekran görüntüsü at, hallederiz.

@@ -92,9 +92,21 @@ Write-Step "Registry kuruluyor (npm install)"
 Set-Location $registry
 npm install --omit=dev
 
-Write-Step "Panel kuruluyor (npm install)"
+Write-Step "Panel kuruluyor (npm install + Electron)"
 Set-Location $panel
-npm install
+$env:NODE_ENV = "development"
+npm install --include=dev --foreground-scripts --no-audit
+
+$electronExe = Join-Path $panel "node_modules\electron\dist\electron.exe"
+if (-not (Test-Path $electronExe)) {
+  Write-Host "Electron binary eksik — ek indirme..." -ForegroundColor Yellow
+  Remove-Item -Recurse -Force (Join-Path $panel "node_modules\electron") -ErrorAction SilentlyContinue
+  npm install electron@35.1.5 --save-dev --foreground-scripts --no-audit
+}
+if (-not (Test-Path $electronExe)) {
+  throw "Electron kurulamadi. FIX-ELECTRON.bat calistir veya antivirus kapat."
+}
+Write-Host "Electron OK" -ForegroundColor Green
 
 # Baslat batch
 $startBat = Join-Path $InstallDir "BASLAT-SERVER.bat"

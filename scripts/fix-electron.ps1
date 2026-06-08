@@ -1,3 +1,4 @@
+﻿﻿# INSTALL_SCRIPT_VERSION=3
 # Electron binary eksik/bozuk ise yeniden indirir.
 param(
   [string]$InstallDir = ""

@@ -1,3 +1,4 @@
+﻿﻿# INSTALL_SCRIPT_VERSION=3
 # Tek script - Git / GitHub CLI gerekmez.
 # Tekrar calistirinca SADECE eksik parcalari kurar.
 
@@ -91,7 +92,9 @@ if ($Force -or -not (Test-Path $panel)) {
     $extracted = Get-ChildItem $tmp -Directory | Where-Object { $_.Name -like "extraction-dedicated-server*" } | Select-Object -First 1
     if (-not $extracted) { throw "Repo zip acilamadi" }
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-    Copy-Item -Path "$($extracted.FullName)\*" -Destination $InstallDir -Recurse -Force
+    Get-ChildItem -Path $extracted.FullName | Where-Object { $_.Name -ne "scripts" } | ForEach-Object {
+      Copy-Item -Path $_.FullName -Destination $InstallDir -Recurse -Force
+    }
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host "  OK" -ForegroundColor Green
   }

@@ -1,0 +1,14 @@
+{
+  "version": "0.1.1",
+  "notes": "Playit client — registry secret uyumlu",
+  "platforms": {
+    "darwin": {
+      "url": "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.1-client-mac/client-mac.zip",
+      "binary": "ExtractionShooterPrototype.app/Contents/MacOS/ExtractionShooterPrototype"
+    },
+    "win32": {
+      "url": "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.1-client-win/client-win.zip",
+      "binary": "ExtractionShooterClient.exe"
+    }
+  }
+}

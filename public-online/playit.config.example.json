@@ -1,0 +1,7 @@
+{
+  "registryPublicUrl": "https://YOUR-REGISTRY-TUNNEL.share.playit.gg/v1",
+  "gameHost": "YOUR-GAME-TUNNEL.gl.playit.gg",
+  "gamePort": 12345,
+  "localGamePort": 7777,
+  "localRegistryPort": 8787
+}

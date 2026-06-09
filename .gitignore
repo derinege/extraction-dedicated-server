@@ -19,3 +19,6 @@ claude_ui/
 BuildLogs/
 release/dedicated-server/game/
 .extraction-install.json
+.extraction-public-install.json
+public-online/playit.config.json
+public-online/secrets/

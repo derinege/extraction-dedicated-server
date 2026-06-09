@@ -7,13 +7,37 @@
  */
 import cors from "cors";
 import express from "express";
+import {
+  clientKey,
+  mutationRateLimit,
+  readRateLimit,
+  requireRegistrySecret,
+} from "./security.js";
 
 const app = express();
-app.use(cors());
+
+const corsOrigins = String(process.env.REGISTRY_CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  cors(
+    corsOrigins.length
+      ? {
+          origin(origin, cb) {
+            if (!origin || corsOrigins.includes(origin)) cb(null, true);
+            else cb(new Error("cors blocked"));
+          },
+        }
+      : undefined
+  )
+);
 app.use(express.json({ limit: "32kb" }));
 
 const PORT = Number(process.env.REGISTRY_PORT || 8787);
+const BIND = String(process.env.REGISTRY_BIND || "0.0.0.0").trim() || "0.0.0.0";
 const TTL_MS = Number(process.env.REGISTRY_TTL_SEC || 25) * 1000;
+const MAX_SERVERS = Math.max(1, Number(process.env.REGISTRY_MAX_SERVERS || 16));
 
 /** @type {Map<string, object>} */
 const servers = new Map();
@@ -72,16 +96,16 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-app.get("/v1/health", (_req, res) => {
+app.get("/v1/health", readRateLimit, (_req, res) => {
   res.json({ ok: true, servers: servers.size });
 });
 
 /** Server kendi public IP'sini öğrenmek için (VPS arkasında değilse). */
-app.get("/v1/myip", (req, res) => {
+app.get("/v1/myip", readRateLimit, (req, res) => {
   res.json({ address: clientIp(req) });
 });
 
-app.get("/v1/servers", (_req, res) => {
+app.get("/v1/servers", readRateLimit, (_req, res) => {
   prune();
   const list = [...servers.values()]
     .sort((a, b) => b.lastHeartbeat - a.lastHeartbeat)
@@ -115,7 +139,7 @@ app.get("/v1/servers", (_req, res) => {
   res.json({ servers: list });
 });
 
-app.post("/v1/servers/register", (req, res) => {
+app.post("/v1/servers/register", mutationRateLimit, requireRegistrySecret, (req, res) => {
   const b = req.body || {};
   const serverId = String(b.serverId || "").trim();
   const port = Number(b.port);
@@ -123,8 +147,16 @@ app.post("/v1/servers/register", (req, res) => {
     return res.status(400).json({ error: "serverId and valid port required" });
   }
 
+  if (!servers.has(serverId) && servers.size >= MAX_SERVERS) {
+    return res.status(503).json({ error: "server list full" });
+  }
+
   let address = String(b.address || "").trim();
   if (!address || address === "0.0.0.0" || address === "auto") address = clientIp(req);
+
+  if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(address)) {
+    return res.status(400).json({ error: "private address not allowed for public registry" });
+  }
 
   const entry = {
     serverId,
@@ -143,7 +175,7 @@ app.post("/v1/servers/register", (req, res) => {
   res.json({ ok: true, server: entry });
 });
 
-app.post("/v1/servers/heartbeat", (req, res) => {
+app.post("/v1/servers/heartbeat", mutationRateLimit, requireRegistrySecret, (req, res) => {
   const serverId = String(req.body?.serverId || "").trim();
   if (!serverId || !servers.has(serverId)) {
     return res.status(404).json({ error: "unknown serverId" });
@@ -168,18 +200,21 @@ function normalizeClients(raw) {
     }));
 }
 
-app.post("/v1/servers/unregister", (req, res) => {
+app.post("/v1/servers/unregister", mutationRateLimit, requireRegistrySecret, (req, res) => {
   const serverId = String(req.body?.serverId || "").trim();
   if (!serverId) return res.status(400).json({ error: "serverId required" });
   servers.delete(serverId);
   res.json({ ok: true });
 });
 
-app.delete("/v1/servers/:serverId", (req, res) => {
+app.delete("/v1/servers/:serverId", mutationRateLimit, requireRegistrySecret, (req, res) => {
   servers.delete(req.params.serverId);
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`[registry] http://0.0.0.0:${PORT}  TTL=${TTL_MS / 1000}s`);
+app.listen(PORT, BIND, () => {
+  const secretOn = Boolean(String(process.env.REGISTRY_SECRET || "").trim());
+  console.log(
+    `[registry] http://${BIND}:${PORT}  TTL=${TTL_MS / 1000}s  auth=${secretOn ? "on" : "off"}  max=${MAX_SERVERS}`
+  );
 });

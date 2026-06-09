@@ -2,7 +2,7 @@
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $Zip = Join-Path $Root "game.zip"
-$Url = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip"
+$Url = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.1-game/game.zip"
 
 Write-Host "Indiriliyor: $Url"
 Invoke-WebRequest -Uri $Url -OutFile $Zip -UseBasicParsing

@@ -13,7 +13,7 @@ $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 if (-not $InstallDir) { $InstallDir = $RepoRoot }
 
 $RepoZipUrl = "https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip"
-$GameZipUrl = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip"
+$GameZipUrl = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.1-game/game.zip"
 $StateFile = Join-Path $InstallDir ".extraction-install.json"
 
 function Write-Step($msg) {

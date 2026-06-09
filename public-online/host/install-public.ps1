@@ -15,7 +15,7 @@ if (-not $InstallDir) {
 }
 
 $RepoZipUrl = "https://github.com/derinege/extraction-dedicated-server/archive/refs/heads/main.zip"
-$GameZipUrl = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.0-game/game.zip"
+$GameZipUrl = "https://github.com/derinege/extraction-dedicated-server/releases/download/v0.1.1-game/game.zip"
 $StateFile = Join-Path $InstallDir ".extraction-public-install.json"
 
 function Write-Step($msg) {
